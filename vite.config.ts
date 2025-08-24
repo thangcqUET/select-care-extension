@@ -1,6 +1,4 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -8,9 +6,9 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        popup: './index.html',
-        content: './src/content.ts',
-        background: './src/background.ts'
+        popup: './src/extension_popup/popup.html',
+        content: './src/content_scripts/content.ts',
+        background: './src/service_worker/background.ts'
       },
       output: {
         entryFileNames: (chunkInfo) => {
@@ -29,6 +27,5 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true
   },
-  plugins: [react(), tailwindcss()],
   publicDir: 'public'
 })
