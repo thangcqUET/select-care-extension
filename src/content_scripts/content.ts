@@ -3,6 +3,7 @@ import { throttle } from './utils';
 
 let selectedText : string | undefined;
 let selectionPosition: DOMRect | undefined;
+let savedSelectedText: string | undefined;
 
 // listen select text event
 document.addEventListener('selectionchange', throttle(() => {
@@ -34,7 +35,8 @@ document.addEventListener('mouseup', (event: MouseEvent) => {
   // Only show popup if there's actual trimmed text content
   if (selectedText && selectedText.length > 0) {
     showPopup();
-    selectedText = undefined;
+    savedSelectedText = selectedText;
+    // selectedText = undefined;
   }
 });
 
@@ -202,11 +204,11 @@ class SelectPopup {
   }
 
   private handleIconClick(action: string) {
-    console.log(`Action clicked: ${action} for text: "${selectedText}"`);
-    
+    console.log(`Action clicked: ${action} for text: "${savedSelectedText}"`);
+
     // Store the selected text before hiding popup
-    const textToProcess = selectedText || '';
-    
+    const textToProcess = savedSelectedText || '';
+
     switch (action) {
       case 'translate':
         this.handleTranslateAction(textToProcess);
