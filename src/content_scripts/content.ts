@@ -222,47 +222,27 @@ class SelectPopup {
   }
 
   private handleTranslateAction(text: string) {
-    console.log('🌐 Translating and saving word:', text);
-    // Recommended behavior:
-    // 1. Detect source language automatically
-    // 2. Translate to user's preferred language
-    // 3. Save both original and translation to vocabulary list
-    // 4. Show mini toast with translation result
-    // 5. Add to spaced repetition system for learning
-    
-    // TODO: Implement translation API call
-    // TODO: Save to local storage/database
-    // TODO: Show translation toast notification
+    console.log('🌐 Opening translate form for:', text);
+    const formPopup = new FormPopup('translate', text);
+    if (selectionPosition) {
+      formPopup.show(selectionPosition);
+    }
   }
 
   private handleNoteAction(text: string) {
-    console.log('📌 Saving selection as note:', text);
-    // Recommended behavior:
-    // 1. Open a quick note editor overlay
-    // 2. Pre-fill with selected text
-    // 3. Allow user to add tags, categories
-    // 4. Include source URL and timestamp
-    // 5. Save to notes collection with search capability
-    
-    // TODO: Show note editor modal
-    // TODO: Include metadata (URL, timestamp, context)
-    // TODO: Save to notes database
-    // TODO: Add tagging system
+    console.log('📌 Opening note form for:', text);
+    const formPopup = new FormPopup('note', text);
+    if (selectionPosition) {
+      formPopup.show(selectionPosition);
+    }
   }
 
   private handleAiAction(text: string) {
-    console.log('🤖 Asking AI about:', text);
-    // Recommended behavior:
-    // 1. Show loading indicator
-    // 2. Send text to AI service with context
-    // 3. Display response in expandable dialog
-    // 4. Allow follow-up questions
-    // 5. Save conversation history
-    
-    // TODO: Show AI chat interface
-    // TODO: Implement streaming response
-    // TODO: Add context from surrounding text
-    // TODO: Save chat history
+    console.log('🤖 Opening AI form for:', text);
+    const formPopup = new FormPopup('ai', text);
+    if (selectionPosition) {
+      formPopup.show(selectionPosition);
+    }
   }
 
   private clearHideTimeout() {
@@ -336,7 +316,380 @@ class SelectPopup {
   }
 }
 
-// Global popup instance
+// Form popup component for detailed input
+class FormPopup {
+  private container: HTMLDivElement;
+  private shadowRoot: ShadowRoot;
+  private isVisible: boolean = false;
+  private actionType: string;
+  private selectedText: string;
+
+  constructor(actionType: string, text: string) {
+    this.actionType = actionType;
+    this.selectedText = text;
+    this.container = document.createElement('div');
+    this.container.className = 'select-care-form-container';
+    this.shadowRoot = this.container.attachShadow({ mode: 'closed' });
+    this.setupFormStyles();
+    this.setupFormContent();
+  }
+
+  private setupFormStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+      .form-popup {
+        position: fixed;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        border-radius: 12px;
+        transform: scale(0.3) translate(-50%, 0);
+        
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.4);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(63, 63, 63, 0.3);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #000;
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        
+        z-index: 10001;
+        pointer-events: auto;
+        min-width: 280px;
+        max-width: 320px;
+      }
+
+      .form-popup.visible {
+        opacity: 1;
+        transform: scale(1) translate(-50%, 0);
+      }
+
+      .form-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .form-icon {
+        font-size: 16px;
+      }
+
+      .form-input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid rgba(63, 63, 63, 0.2);
+        border-radius: 8px;
+        font-size: 13px;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(5px);
+        color: #000;
+        margin-bottom: 8px;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+
+      .form-input::placeholder {
+        color: rgba(0, 0, 0, 0.5);
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: rgba(63, 63, 63, 0.4);
+        background: rgba(255, 255, 255, 0.8);
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 4px;
+      }
+
+      .form-button {
+        flex: 1;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        backdrop-filter: blur(5px);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+
+      .form-button.cancel {
+        background: rgba(255, 255, 255, 0.3);
+        color: #000;
+        border: 1px solid rgba(63, 63, 63, 0.2);
+      }
+
+      .form-button.cancel:hover {
+        background: rgba(255, 255, 255, 0.5);
+        transform: scale(1.02);
+      }
+
+      .form-button.primary {
+        background: rgba(255, 255, 255, 0.8);
+        color: #000;
+        border: 1px solid rgba(63, 63, 63, 0.3);
+        font-weight: 600;
+      }
+
+      .form-button.primary:hover {
+        background: rgba(255, 255, 255, 0.95);
+        transform: scale(1.02);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .form-button:active {
+        transform: scale(0.98);
+      }
+
+      .selected-text {
+        background: rgba(255, 255, 255, 0.3);
+        border: 1px solid rgba(63, 63, 63, 0.2);
+        border-radius: 8px;
+        padding: 8px;
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.8);
+        margin-bottom: 8px;
+        max-height: 60px;
+        overflow-y: auto;
+        word-break: break-word;
+        backdrop-filter: blur(5px);
+      }
+    `;
+    this.shadowRoot.appendChild(style);
+  }
+
+  private setupFormContent() {
+    const popup = document.createElement('div');
+    popup.className = 'form-popup';
+
+    // Header with icon and title
+    const header = document.createElement('div');
+    header.className = 'form-header';
+
+    const icon = document.createElement('span');
+    icon.className = 'form-icon';
+    
+    const title = document.createElement('span');
+
+    switch (this.actionType) {
+      case 'translate':
+        icon.textContent = '🌐';
+        title.textContent = 'Translate & Save';
+        break;
+      case 'note':
+        icon.textContent = '📌';
+        title.textContent = 'Save Note';
+        break;
+      case 'ai':
+        icon.textContent = '🤖';
+        title.textContent = 'Ask AI';
+        break;
+    }
+
+    header.appendChild(icon);
+    header.appendChild(title);
+
+    // Selected text display (compact)
+    const textDisplay = document.createElement('div');
+    textDisplay.className = 'selected-text';
+    textDisplay.textContent = this.selectedText.length > 100 
+      ? this.selectedText.substring(0, 100) + '...' 
+      : this.selectedText;
+
+    // Single input field based on action type
+    const inputField = this.createSimpleInput();
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'form-actions';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'form-button cancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', () => this.hide());
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'form-button primary';
+    saveBtn.textContent = this.getSaveButtonText();
+    saveBtn.addEventListener('click', () => this.handleSave());
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(saveBtn);
+
+    // Assemble popup
+    popup.appendChild(header);
+    popup.appendChild(textDisplay);
+    popup.appendChild(inputField);
+    popup.appendChild(actions);
+
+    this.shadowRoot.appendChild(popup);
+
+    // Hide when clicking outside
+    document.addEventListener('click', this.handleOutsideClick, true);
+  }
+
+  private createSimpleInput(): HTMLElement {
+    const input = document.createElement('input');
+    input.className = 'form-input';
+    input.id = 'mainInput';
+
+    switch (this.actionType) {
+      case 'translate':
+        input.placeholder = 'Target language (e.g., English, Spanish)';
+        input.value = 'English';
+        break;
+      case 'note':
+        input.placeholder = 'Note title or category';
+        break;
+      case 'ai':
+        input.placeholder = 'What would you like to ask?';
+        break;
+    }
+
+    return input;
+  }
+
+  private handleOutsideClick = (event: Event) => {
+    if (!this.container.contains(event.target as Node)) {
+      this.hide();
+    }
+  };
+
+  private getSaveButtonText(): string {
+    switch (this.actionType) {
+      case 'translate':
+        return 'Translate & Save';
+      case 'note':
+        return 'Save Note';
+      case 'ai':
+        return 'Ask AI';
+      default:
+        return 'Save';
+    }
+  }
+
+  private handleSave() {
+    const formData = this.collectFormData();
+    console.log(`Saving ${this.actionType} data:`, formData);
+    
+    // TODO: Implement actual save logic based on action type
+    switch (this.actionType) {
+      case 'translate':
+        this.saveTranslation(formData);
+        break;
+      case 'note':
+        this.saveNote(formData);
+        break;
+      case 'ai':
+        this.askAI(formData);
+        break;
+    }
+    
+    this.hide();
+  }
+
+  private collectFormData(): any {
+    const data: any = {
+      selectedText: this.selectedText,
+      actionType: this.actionType,
+      timestamp: new Date().toISOString(),
+      sourceUrl: window.location.href
+    };
+
+    // Get the main input value
+    const mainInput = this.shadowRoot.getElementById('mainInput') as HTMLInputElement;
+    const inputValue = mainInput?.value || '';
+
+    // Set data based on action type
+    switch (this.actionType) {
+      case 'translate':
+        data.targetLanguage = inputValue || 'English';
+        data.sourceLanguage = 'auto';
+        break;
+      case 'note':
+        data.title = inputValue || 'Untitled Note';
+        data.category = 'General';
+        break;
+      case 'ai':
+        data.question = inputValue || 'Explain this text';
+        break;
+    }
+
+    return data;
+  }
+
+  private saveTranslation(data: any) {
+    console.log('💾 Saving translation:', data);
+    // TODO: Implement translation API and storage
+  }
+
+  private saveNote(data: any) {
+    console.log('💾 Saving note:', data);
+    // TODO: Implement note storage
+  }
+
+  private askAI(data: any) {
+    console.log('🤖 Asking AI:', data);
+    // TODO: Implement AI API call
+  }
+
+  show(position: DOMRect) {
+    if (this.isVisible) return;
+
+    document.body.appendChild(this.container);
+    
+    const popup = this.shadowRoot.querySelector('.form-popup') as HTMLElement;
+    if (popup) {
+      // Position the popup below the selection, similar to the first popup
+      popup.style.top = `${position.bottom + window.scrollY + 10}px`;
+      popup.style.left = `${position.left + window.scrollX + position.width / 2}px`;
+      
+      // Trigger animation
+      requestAnimationFrame(() => {
+        popup.classList.add('visible');
+      });
+    }
+
+    this.isVisible = true;
+
+    // Focus the input
+    setTimeout(() => {
+      const input = this.shadowRoot.getElementById('mainInput') as HTMLElement;
+      if (input) {
+        input.focus();
+      }
+    }, 100);
+  }
+
+  hide() {
+    if (!this.isVisible) return;
+
+    const popup = this.shadowRoot.querySelector('.form-popup') as HTMLElement;
+    if (popup) {
+      popup.classList.remove('visible');
+      
+      setTimeout(() => {
+        if (this.container.parentNode) {
+          document.body.removeChild(this.container);
+        }
+      }, 300);
+    }
+
+    document.removeEventListener('click', this.handleOutsideClick, true);
+    this.isVisible = false;
+  }
+}
+
+// Global popup instances
 let popupInstance: SelectPopup | null = null;
 
 // function to show a popup with 3 clickable icons
