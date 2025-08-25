@@ -6,7 +6,9 @@ let selectionPosition: DOMRect | undefined;
 
 // listen select text event
 document.addEventListener('selectionchange', throttle(() => {
-  selectedText = document.getSelection()?.toString();
+  const rawText = document.getSelection()?.toString();
+  selectedText = rawText?.trim(); // Trim whitespace
+  
   //position of selection
   const selection = document.getSelection();
   if (selection && selection.rangeCount > 0) {
@@ -29,7 +31,8 @@ document.addEventListener('mousedown', (event: MouseEvent) => {
 //listen mouse up event
 document.addEventListener('mouseup', (event: MouseEvent) => {
   console.log('Mouse up at:', event.clientX, event.clientY);
-  if (selectedText) {
+  // Only show popup if there's actual trimmed text content
+  if (selectedText && selectedText.length > 0) {
     showPopup();
     selectedText = undefined;
   }
@@ -62,7 +65,7 @@ class SelectPopup {
         border-radius: 12px;
         transform: translate(-50%, -50%) scale(0.8);
         
-        padding: 8px;
+        padding: 5px;
         background: rgba(255, 255, 255, 0.4);
         backdrop-filter: blur(20px);
         border: 1px solid rgba(63, 63, 63, 0.3);
@@ -104,7 +107,7 @@ class SelectPopup {
         border-radius: 8px;
         background: rgba(255, 255, 255, 0.15);
         color: white;
-        font-size: 18px;
+        font-size: 14px;
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -338,7 +341,10 @@ let popupInstance: SelectPopup | null = null;
 
 // function to show a popup with 3 clickable icons
 function showPopup() {
-  if (!selectionPosition) return;
+  // Double-check that we have valid selection position and text
+  if (!selectionPosition || !selectedText || selectedText.trim().length === 0) {
+    return;
+  }
 
   // Hide existing popup if any
   if (popupInstance) {
