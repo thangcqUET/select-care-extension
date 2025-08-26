@@ -652,8 +652,8 @@ class FormPopup {
     const popup = this.shadowRoot.querySelector('.form-popup') as HTMLElement;
     if (popup) {
       // Position the popup below the selection, similar to the first popup
-      popup.style.top = `${position.bottom + window.scrollY + 10}px`;
-      popup.style.left = `${position.left + window.scrollX + position.width / 2}px`;
+      popup.style.top = `${position.bottom + 10}px`;
+      popup.style.left = `${position.left + position.width / 2}px`;
       
       // Trigger animation
       requestAnimationFrame(() => {
