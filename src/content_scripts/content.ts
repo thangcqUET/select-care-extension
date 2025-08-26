@@ -577,28 +577,11 @@ class FormPopup {
       }
       console.log("User is typing, checking for shortcuts...", event.key);
       
-      // Check if this is a keyboard shortcut
-      // X.com (Twitter) uses single keys as shortcuts (n, r, l, etc.)
+      // Check if this is a single shortcut
       const isSingleKeyShortcut = event.key.length === 1 && 
                                 !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
       console.log("Single key shortcut detected:", event.key);
-      // Traditional shortcuts with modifier keys
-      const isModifierShortcut = (event.ctrlKey || event.metaKey || event.altKey) && 
-                                event.key.length === 1;
-      
-      // Function keys and other special shortcuts
-      const isFunctionKey = event.key.startsWith('F') && event.key.length > 1;
-      const isSpecialShortcut = ['Escape', 'Space'].includes(event.key) && 
-                              !event.ctrlKey && !event.metaKey && !event.altKey;
-      
-      if (isSingleKeyShortcut || isModifierShortcut || isFunctionKey || isSpecialShortcut) {
-        console.log('Preventing webpage shortcut while typing:', event.key, {
-          type: isSingleKeyShortcut ? 'single-key' : isModifierShortcut ? 'modifier' : 'special',
-          activeElement: document.activeElement?.tagName,
-          website: window.location.hostname,
-          target: event.target,
-        });
-        
+      if (isSingleKeyShortcut) {
         // Stop the event from reaching the webpage's shortcut handlers
         event.preventDefault();
         event.stopPropagation();
@@ -606,20 +589,6 @@ class FormPopup {
         const inputField = this.shadowRoot.getElementById('mainInput') as HTMLInputElement;
         if (inputField) {
           inputField.value += event.key;
-        }
-        // event.stopImmediatePropagation();
-        
-        // // For single key shortcuts (like X.com's "n" for new tweet), prevent default
-        // if (isSingleKeyShortcut || isSpecialShortcut) {
-        //   event.preventDefault();
-        // }
-        
-        // For modifier shortcuts, allow some common editing shortcuts
-        if (isModifierShortcut && (event.ctrlKey || event.metaKey)) {
-          const allowedShortcuts = ['a', 'c', 'v', 'x', 'z', 'y']; // Select all, copy, paste, cut, undo, redo
-          if (!allowedShortcuts.includes(event.key.toLowerCase())) {
-            event.preventDefault();
-          }
         }
       }
     }, true); // Use capture phase to catch events early
