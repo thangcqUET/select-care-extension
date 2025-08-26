@@ -5,6 +5,33 @@ let selectedText : string | undefined;
 let selectionPosition: DOMRect | undefined;
 let savedSelectedText: string | undefined;
 
+// Function to check if user is currently typing in an input field
+function isUserTyping(): boolean {
+  const activeElement = document.activeElement;
+  console.log(activeElement);
+  if (!activeElement) return false;
+  
+  // Check if it's an input field, textarea, or content editable
+  const isFormContainer = activeElement.classList.contains('select-care-form-container')
+  
+  const isContentEditable = activeElement.getAttribute('contenteditable') === 'true' ||
+                           activeElement.getAttribute('contenteditable') === '';
+  
+  const isEditableDiv = activeElement.getAttribute('role') === 'textbox';
+  
+  // Check if it's a typing-related input type
+  const inputType = (activeElement as HTMLInputElement).type;
+  const isTypingInput = !inputType || 
+                       ['text', 'email', 'password', 'search', 'url', 'tel'].includes(inputType);
+  console.log({
+    isFormContainer,
+    isContentEditable,
+    isEditableDiv,
+    isTypingInput
+  })
+  return (isFormContainer && isTypingInput) || isContentEditable || isEditableDiv;
+}
+
 // listen select text event
 document.addEventListener('selectionchange', throttle(() => {
   const rawText = document.getSelection()?.toString();
@@ -17,21 +44,28 @@ document.addEventListener('selectionchange', throttle(() => {
     const rect = selectionRange.getBoundingClientRect();
     selectionPosition = rect;
   }
-  console.log('Selected text:', selectedText);
-  if (selectedText) {
-    // show a popup beside the mouse with a emoji and the selected text
-    console.log(`${selectedText}`);
-  }
+  // console.log('Selected text:', selectedText);
+  // if (selectedText) {
+  //   // show a popup beside the mouse with a emoji and the selected text
+  //   console.log(`${selectedText}`);
+  // }
 }, 10));
 
 //listen mouse down event
-document.addEventListener('mousedown', (event: MouseEvent) => {
-  console.log('Mouse down at:', event.clientX, event.clientY);
-});
+// document.addEventListener('mousedown', (event: MouseEvent) => {
+//   console.log('Mouse down at:', event.clientX, event.clientY);
+// });
 
 //listen mouse up event
-document.addEventListener('mouseup', (event: MouseEvent) => {
-  console.log('Mouse up at:', event.clientX, event.clientY);
+document.addEventListener('mouseup', () => {
+  // console.log('Mouse up at:', event.clientX, event.clientY);
+  
+  // Don't show popup if user is typing in an input field
+  if (isUserTyping()) {
+    console.log('User is typing, skipping popup');
+    return;
+  }
+  
   // Only show popup if there's actual trimmed text content
   if (selectedText && selectedText.length > 0) {
     showPopup();
@@ -39,6 +73,7 @@ document.addEventListener('mouseup', (event: MouseEvent) => {
     // selectedText = undefined;
   }
 });
+
 
 // Virtual DOM component for the popup
 class SelectPopup {
@@ -182,7 +217,7 @@ class SelectPopup {
     });
 
     const icons = [
-      { emoji: '🌏', action: 'translate', title: 'Translate & Save Word' },
+      { emoji: '🌏', action: 'remember', title: 'Remember it' },
       { emoji: '📝', action: 'note', title: 'Save as Note' },
       { emoji: '🤖', action: 'ai', title: 'Ask AI' }
     ];
@@ -204,14 +239,14 @@ class SelectPopup {
   }
 
   private handleIconClick(action: string) {
-    console.log(`Action clicked: ${action} for text: "${savedSelectedText}"`);
+    // console.log(`Action clicked: ${action} for text: "${savedSelectedText}"`);
 
     // Store the selected text before hiding popup
     const textToProcess = savedSelectedText || '';
 
     switch (action) {
-      case 'translate':
-        this.handleTranslateAction(textToProcess);
+      case 'remember':
+        this.handleRememberAction(textToProcess);
         break;
       case 'note':
         this.handleNoteAction(textToProcess);
@@ -223,16 +258,16 @@ class SelectPopup {
     this.hide();
   }
 
-  private handleTranslateAction(text: string) {
-    console.log('🌐 Opening translate form for:', text);
-    const formPopup = new FormPopup('translate', text);
+  private handleRememberAction(text: string) {
+    // console.log('🌐 Opening remember form for:', text);
+    const formPopup = new FormPopup('remember', text);
     if (selectionPosition) {
       formPopup.show(selectionPosition);
     }
   }
 
   private handleNoteAction(text: string) {
-    console.log('📌 Opening note form for:', text);
+    // console.log('📌 Opening note form for:', text);
     const formPopup = new FormPopup('note', text);
     if (selectionPosition) {
       formPopup.show(selectionPosition);
@@ -240,7 +275,7 @@ class SelectPopup {
   }
 
   private handleAiAction(text: string) {
-    console.log('🤖 Opening AI form for:', text);
+    // console.log('🤖 Opening AI form for:', text);
     const formPopup = new FormPopup('ai', text);
     if (selectionPosition) {
       formPopup.show(selectionPosition);
@@ -355,7 +390,7 @@ class FormPopup {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         color: #000;
         opacity: 0;
-        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         
         z-index: 10001;
         pointer-events: auto;
@@ -483,9 +518,9 @@ class FormPopup {
     const title = document.createElement('span');
 
     switch (this.actionType) {
-      case 'translate':
+      case 'remember':
         icon.textContent = '🌐';
-        title.textContent = 'Translate & Save';
+        title.textContent = 'Remember it';
         break;
       case 'note':
         icon.textContent = '📌';
@@ -534,7 +569,60 @@ class FormPopup {
     popup.appendChild(actions);
 
     this.shadowRoot.appendChild(popup);
-
+    // Add keyboard event listener to prevent shortcuts when typing
+    popup.addEventListener("keydown", (event: KeyboardEvent) => {
+      if (!isUserTyping()) {
+        console.log("User is not typing, skipping shortcut check.");
+        return;
+      }
+      console.log("User is typing, checking for shortcuts...", event.key);
+      
+      // Check if this is a keyboard shortcut
+      // X.com (Twitter) uses single keys as shortcuts (n, r, l, etc.)
+      const isSingleKeyShortcut = event.key.length === 1 && 
+                                !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
+      console.log("Single key shortcut detected:", event.key);
+      // Traditional shortcuts with modifier keys
+      const isModifierShortcut = (event.ctrlKey || event.metaKey || event.altKey) && 
+                                event.key.length === 1;
+      
+      // Function keys and other special shortcuts
+      const isFunctionKey = event.key.startsWith('F') && event.key.length > 1;
+      const isSpecialShortcut = ['Escape', 'Space'].includes(event.key) && 
+                              !event.ctrlKey && !event.metaKey && !event.altKey;
+      
+      if (isSingleKeyShortcut || isModifierShortcut || isFunctionKey || isSpecialShortcut) {
+        console.log('Preventing webpage shortcut while typing:', event.key, {
+          type: isSingleKeyShortcut ? 'single-key' : isModifierShortcut ? 'modifier' : 'special',
+          activeElement: document.activeElement?.tagName,
+          website: window.location.hostname,
+          target: event.target,
+        });
+        
+        // Stop the event from reaching the webpage's shortcut handlers
+        event.preventDefault();
+        event.stopPropagation();
+        //add text to text field, even backspace, delete
+        const inputField = this.shadowRoot.getElementById('mainInput') as HTMLInputElement;
+        if (inputField) {
+          inputField.value += event.key;
+        }
+        // event.stopImmediatePropagation();
+        
+        // // For single key shortcuts (like X.com's "n" for new tweet), prevent default
+        // if (isSingleKeyShortcut || isSpecialShortcut) {
+        //   event.preventDefault();
+        // }
+        
+        // For modifier shortcuts, allow some common editing shortcuts
+        if (isModifierShortcut && (event.ctrlKey || event.metaKey)) {
+          const allowedShortcuts = ['a', 'c', 'v', 'x', 'z', 'y']; // Select all, copy, paste, cut, undo, redo
+          if (!allowedShortcuts.includes(event.key.toLowerCase())) {
+            event.preventDefault();
+          }
+        }
+      }
+    }, true); // Use capture phase to catch events early
     // Hide when clicking outside
     document.addEventListener('click', this.handleOutsideClick, true);
   }
@@ -545,7 +633,7 @@ class FormPopup {
     input.id = 'mainInput';
 
     switch (this.actionType) {
-      case 'translate':
+      case 'remember':
         input.placeholder = 'Target language (e.g., English, Spanish)';
         input.value = 'English';
         break;
@@ -568,8 +656,8 @@ class FormPopup {
 
   private getSaveButtonText(): string {
     switch (this.actionType) {
-      case 'translate':
-        return 'Translate & Save';
+      case 'remember':
+        return 'Remember it';
       case 'note':
         return 'Save Note';
       case 'ai':
@@ -585,8 +673,8 @@ class FormPopup {
     
     // TODO: Implement actual save logic based on action type
     switch (this.actionType) {
-      case 'translate':
-        this.saveTranslation(formData);
+      case 'remember':
+        this.saveRemember(formData);
         break;
       case 'note':
         this.saveNote(formData);
@@ -613,7 +701,7 @@ class FormPopup {
 
     // Set data based on action type
     switch (this.actionType) {
-      case 'translate':
+      case 'remember':
         data.targetLanguage = inputValue || 'English';
         data.sourceLanguage = 'auto';
         break;
@@ -629,9 +717,9 @@ class FormPopup {
     return data;
   }
 
-  private saveTranslation(data: any) {
-    console.log('💾 Saving translation:', data);
-    // TODO: Implement translation API and storage
+  private saveRemember(data: any) {
+    console.log('💾 Saving remember data:', data);
+    // TODO: Implement remember API and storage
   }
 
   private saveNote(data: any) {
@@ -646,7 +734,6 @@ class FormPopup {
 
   show(position: DOMRect) {
     if (this.isVisible) return;
-
     document.body.appendChild(this.container);
     
     const popup = this.shadowRoot.querySelector('.form-popup') as HTMLElement;
