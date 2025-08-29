@@ -13,6 +13,7 @@
       "js": ["content.js"]
     }
   ],
+  "options_page": "dashboard.html",
   "action": {
     "default_popup": "src/extension_popup/popup.html",
     "default_title": "Select Care",

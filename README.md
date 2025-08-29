@@ -73,6 +73,29 @@ A powerful Chrome extension for intelligent text selection and management. Selec
 - **Use Case**: Understanding complex concepts, getting summaries
 - **Hidden Tag**: `fn_chat` (automatically added)
 
+## 📊 **Dashboard**
+
+### **Management Interface**
+A React-based dashboard for managing and viewing all saved selections:
+
+- **Modern UI**: Built with React + TypeScript + Vite + TailwindCSS
+- **Real-time Filtering**: Search by text, filter by tags and action types
+- **Visual Organization**: Cards with glassmorphism design and action icons
+- **Tag Management**: Visual tag chips with filtering capabilities
+- **Source Tracking**: Links back to original webpage sources
+
+### **Dashboard Features**
+- 🔍 **Search**: Find selections by text content or source URL
+- 🏷️ **Tag Filtering**: Filter by user tags (excluding function tags)
+- 📝 **Action Filtering**: Filter by Remember/Note/AI Chat actions
+- 📅 **Timestamp Display**: See when each selection was made
+- 🔗 **Source Links**: Click to visit the original webpage
+
+### **Access Dashboard**
+- Open `chrome://extensions/`
+- Find "SelectCare Extension"
+- Click "Options" or access via `dashboard.html`
+
 ## 🏷️ **Tag System**
 
 ### **Automatic Function Tags**
@@ -91,12 +114,20 @@ Each action type automatically includes a hidden function tag for easy filtering
 
 ### **Component Structure**
 ```
-content_scripts/
-├── content.ts              # Main content script
-├── components/
-│   └── TagInput.ts         # Reusable tag input component
-├── utils.ts                # Utility functions
-└── data_mapper.ts          # Data transformation
+src/
+├── content_scripts/        # Content script functionality
+│   ├── content.ts          # Main content script
+│   ├── components/
+│   │   └── TagInput.ts     # Reusable tag input component
+│   ├── utils.ts            # Utility functions
+│   └── data_mapper.ts      # Data transformation
+├── dashboard/              # React dashboard
+│   ├── Dashboard.tsx       # Main dashboard component
+│   ├── main.tsx           # React entry point
+│   ├── dashboard.html     # Dashboard HTML template
+│   └── index.css          # TailwindCSS styles
+├── extension_popup/        # Extension popup UI
+└── service_worker/         # Background script
 ```
 
 ### **Key Technologies**
