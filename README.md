@@ -59,16 +59,33 @@ A powerful Chrome extension for intelligent text selection and management. Selec
 - **Purpose**: Save words/phrases for language learning
 - **Input**: Target language (defaults to English)
 - **Use Case**: Building vocabulary, learning new terms
+- **Hidden Tag**: `fn_remember` (automatically added)
 
 ### 📝 Note
 - **Purpose**: Save text selections with categorized tags
 - **Input**: Flexible tag system (no prefix required)
 - **Use Case**: Research, bookmarking, content organization
+- **Hidden Tag**: `fn_note` (automatically added)
 
 ### 🤖 Ask AI
 - **Purpose**: Get AI analysis or explanation of selected text
 - **Input**: Custom question about the selection
 - **Use Case**: Understanding complex concepts, getting summaries
+- **Hidden Tag**: `fn_chat` (automatically added)
+
+## 🏷️ **Tag System**
+
+### **Automatic Function Tags**
+Each action type automatically includes a hidden function tag for easy filtering:
+- **Remember actions**: `fn_remember`
+- **Note actions**: `fn_note` + user tags
+- **AI actions**: `fn_chat`
+
+### **User Tags (Notes only)**
+- Type any text and press Enter to create tags
+- Support for multi-word tags: `machine learning`, `front end development`
+- No special prefix required
+- Visual blue chips with edit/remove functionality
 
 ## 🛠️ Technical Architecture
 

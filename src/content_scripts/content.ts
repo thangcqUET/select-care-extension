@@ -718,10 +718,12 @@ class FormPopup {
       // For tags, get from TagInput component
       if (this.tagInput) {
         const tags = this.tagInput.getTags();
-        data.tags = tags.length > 0 ? tags : ['general'];
-        data.tagCount = tags.length;
+        // Add hidden function tag for note
+        const allTags = ['fn_note', ...(tags.length > 0 ? tags : ['general'])];
+        data.tags = allTags;
+        data.tagCount = tags.length; // Don't count the hidden tag
       } else {
-        data.tags = ['general'];
+        data.tags = ['fn_note', 'general'];
         data.tagCount = 0;
       }
     } else {
@@ -735,12 +737,16 @@ class FormPopup {
       case 'remember':
         data.targetLanguage = inputValue || 'English';
         data.sourceLanguage = 'auto';
+        // Add hidden function tag for remember
+        data.tags = ['fn_remember'];
         break;
       case 'note':
-        // Tags already handled above
+        // Tags already handled above with fn_note
         break;
       case 'ai':
         data.question = inputValue || 'Explain this text';
+        // Add hidden function tag for AI/chat
+        data.tags = ['fn_chat'];
         break;
     }
 
