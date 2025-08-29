@@ -1,3 +1,5 @@
+import { createSelection } from "./types";
+
 // Background service worker for Chrome extension
 console.log('Select Care Extension background script loaded');
 
@@ -7,8 +9,10 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 // Example: Handle messages from content scripts or popup
-chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  if (request.action === 'background-action') {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.action === 'note') {
+    const selection = createSelection(message.data);
+    console.log('Received note selection:', selection);
     // Handle background actions here
     sendResponse({ success: true });
   }
