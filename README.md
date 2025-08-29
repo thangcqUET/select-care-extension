@@ -20,6 +20,13 @@ A powerful Chrome extension for intelligent text selection and management. Selec
 - **Custom Event System**: Advanced keyboard event handling through Shadow DOM
 - **Focus Management**: Intelligent detection of user typing states
 
+### 🔧 **Extension Popup**
+- **Quick Access**: Click the extension icon for instant access
+- **Usage Instructions**: Visual guide on how to use the extension
+- **Action Preview**: See all three action types (Remember, Note, AI)
+- **Dashboard Link**: One-click access to the management dashboard
+- **Modern Design**: Glassmorphism UI matching the content script design
+
 ### 🎨 **Modern UI Design**
 - **Glassmorphism**: Translucent backgrounds with backdrop blur effects
 - **Responsive**: Adapts to different screen sizes and positions
@@ -52,6 +59,7 @@ A powerful Chrome extension for intelligent text selection and management. Selec
    - 🤖 **Ask AI**: Get AI insights about the text
 3. **Add Details**: Fill in the form popup with relevant information
 4. **Save**: Your selection is processed and stored
+5. **Access Dashboard**: Click the extension icon and select "Open Dashboard"
 
 ## 📋 Action Types
 
