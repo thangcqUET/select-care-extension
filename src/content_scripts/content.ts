@@ -1,4 +1,6 @@
+import { convertToSelection } from './data_mapper';
 import { throttle } from './utils';
+import { TagInput } from './components/TagInput';
 
 
 let selectedText : string | undefined;
@@ -13,6 +15,7 @@ function isUserTyping(): boolean {
   
   // Check if it's an input field, textarea, or content editable
   const isFormContainer = activeElement.classList.contains('select-care-form-container')
+  const isTagInputField = activeElement.classList.contains('tag-input-field')
   
   const isContentEditable = activeElement.getAttribute('contenteditable') === 'true' ||
                            activeElement.getAttribute('contenteditable') === '';
@@ -25,11 +28,12 @@ function isUserTyping(): boolean {
                        ['text', 'email', 'password', 'search', 'url', 'tel'].includes(inputType);
   console.log({
     isFormContainer,
+    isTagInputField,
     isContentEditable,
     isEditableDiv,
     isTypingInput
   })
-  return (isFormContainer && isTypingInput) || isContentEditable || isEditableDiv;
+  return (isFormContainer && isTypingInput) || isTagInputField || isContentEditable || isEditableDiv;
 }
 
 // listen select text event
@@ -360,6 +364,7 @@ class FormPopup {
   private isVisible: boolean = false;
   private actionType: string;
   private selectedText: string;
+  private tagInput?: TagInput; // Tag input component instance
 
   constructor(actionType: string, text: string) {
     this.actionType = actionType;
@@ -571,6 +576,7 @@ class FormPopup {
     this.shadowRoot.appendChild(popup);
     // Add keyboard event listener to prevent shortcuts when typing
     popup.addEventListener("keydown", (event: KeyboardEvent) => {
+      // Always check if user is typing first
       if (!isUserTyping()) {
         console.log("User is not typing, skipping shortcut check.");
         return;
@@ -585,10 +591,21 @@ class FormPopup {
         // Stop the event from reaching the webpage's shortcut handlers
         event.preventDefault();
         event.stopPropagation();
-        //add text to text field, even backspace, delete
-        const inputField = this.shadowRoot.getElementById('mainInput') as HTMLInputElement;
-        if (inputField) {
-          inputField.value += event.key;
+        
+        // For tag input (note action), send custom event to TagInput component
+        if (this.actionType === 'note' && this.tagInput) {
+          this.tagInput.dispatchKeyEvent(event.key, {
+            ctrlKey: event.ctrlKey,
+            metaKey: event.metaKey,
+            altKey: event.altKey,
+            shiftKey: event.shiftKey
+          });
+        } else {
+          // For regular input fields, add text directly
+          const inputField = this.shadowRoot.getElementById('mainInput') as HTMLInputElement;
+          if (inputField) {
+            inputField.value += event.key;
+          }
         }
       }
     }, true); // Use capture phase to catch events early
@@ -597,6 +614,10 @@ class FormPopup {
   }
 
   private createSimpleInput(): HTMLElement {
+    if (this.actionType === 'note') {
+      return this.createTagInputComponent();
+    }
+
     const input = document.createElement('input');
     input.className = 'form-input';
     input.id = 'mainInput';
@@ -606,15 +627,42 @@ class FormPopup {
         input.placeholder = 'Target language (e.g., English, Spanish)';
         input.value = 'English';
         break;
-      case 'note':
-        input.placeholder = 'Note title or category';
-        break;
       case 'ai':
         input.placeholder = 'What would you like to ask?';
         break;
     }
 
     return input;
+  }
+
+  private createTagInputComponent(): HTMLElement {
+    this.tagInput = new TagInput({
+      placeholder: 'Type tag name and press Enter...',
+      maxTags: 10,
+      allowDuplicates: false,
+      onTagsChange: (tags) => {
+        console.log('Tags changed:', tags);
+      },
+      onInputChange: (value) => {
+        console.log('Input value changed:', value);
+        // Handle the input change - this means user is actively typing
+        if (value.length > 0) {
+          console.log('User is typing in TagInput:', value);
+        }
+      },
+      onInputFocus: () => {
+        console.log('TagInput focused - user started typing');
+      },
+      onInputBlur: () => {
+        console.log('TagInput lost focus');
+      }
+    });
+
+    const container = document.createElement('div');
+    container.id = 'mainInput';
+    container.appendChild(this.tagInput.getElement());
+
+    return container;
   }
 
   private handleOutsideClick = (event: Event) => {
@@ -665,40 +713,82 @@ class FormPopup {
     };
 
     // Get the main input value
-    const mainInput = this.shadowRoot.getElementById('mainInput') as HTMLInputElement;
-    const inputValue = mainInput?.value || '';
+    let inputValue = '';
+    if (this.actionType === 'note') {
+      // For tags, get from TagInput component
+      if (this.tagInput) {
+        const tags = this.tagInput.getTags();
+        // Add hidden function tag for note
+        const allTags = ['fn_note', ...(tags.length > 0 ? tags : ['general'])];
+        data.tags = allTags;
+        data.tagCount = tags.length; // Don't count the hidden tag
+      } else {
+        data.tags = ['fn_note', 'general'];
+        data.tagCount = 0;
+      }
+    } else {
+      // For other inputs, get from main input
+      const mainInput = this.shadowRoot.getElementById('mainInput') as HTMLInputElement;
+      inputValue = mainInput?.value || '';
+    }
 
     // Set data based on action type
     switch (this.actionType) {
       case 'remember':
         data.targetLanguage = inputValue || 'English';
         data.sourceLanguage = 'auto';
+        // Add hidden function tag for remember
+        data.tags = ['fn_remember'];
         break;
       case 'note':
-        data.title = inputValue || 'Untitled Note';
-        data.category = 'General';
+        // Tags already handled above with fn_note
         break;
       case 'ai':
         data.question = inputValue || 'Explain this text';
+        // Add hidden function tag for AI/chat
+        data.tags = ['fn_chat'];
         break;
     }
 
     return data;
   }
 
-  private saveRemember(data: any) {
+  private async saveRemember(data: any) {
     console.log('💾 Saving remember data:', data);
     // TODO: Implement remember API and storage
+    let rememberSelection = convertToSelection(data);
+    console.log('Created remember selection:', rememberSelection);
+    const response = await chrome.runtime.sendMessage({
+      action: 'remember',
+      data: rememberSelection
+    });
+    console.log('Response from background:', response);
   }
 
-  private saveNote(data: any) {
+  private async saveNote(data: any) {
     console.log('💾 Saving note:', data);
+    console.log('📋 Parsed tags:', data.tags);
+    console.log('🏷️ Tag count:', data.tagCount);
+    
     // TODO: Implement note storage
+    let noteSelection = convertToSelection(data);
+    console.log('Created note selection:', noteSelection);
+    const response = await chrome.runtime.sendMessage({
+      action: 'note',
+      data: noteSelection
+    });
+    console.log('Response from background:', response);
   }
 
-  private askAI(data: any) {
+  private async askAI(data: any) {
     console.log('🤖 Asking AI:', data);
     // TODO: Implement AI API call
+    let chatSelection = convertToSelection(data);
+    const response = await chrome.runtime.sendMessage({
+      action: 'chat',
+      data: chatSelection
+    });
+    console.log('Response from background:', response);
   }
 
   show(position: DOMRect) {
@@ -721,9 +811,13 @@ class FormPopup {
 
     // Focus the input
     setTimeout(() => {
-      const input = this.shadowRoot.getElementById('mainInput') as HTMLElement;
-      if (input) {
-        input.focus();
+      if (this.actionType === 'note' && this.tagInput) {
+        this.tagInput.focus();
+      } else {
+        const input = this.shadowRoot.getElementById('mainInput') as HTMLElement;
+        if (input) {
+          input.focus();
+        }
       }
     }, 100);
   }
@@ -738,6 +832,11 @@ class FormPopup {
       setTimeout(() => {
         if (this.container.parentNode) {
           document.body.removeChild(this.container);
+        }
+        // Clean up TagInput component
+        if (this.tagInput) {
+          this.tagInput.destroy();
+          this.tagInput = undefined;
         }
       }, 300);
     }
