@@ -1,6 +1,11 @@
 # SelectCare Browser Extension
 
-A powerful Chrome extension for intelligent text selection and management. SelectCare allows users to capture, categorize, and interact with selected text through an intuitive popup interface.
+A powerful Chrome extension for intelligent text se### 📊 **Sidebar Dashboard**
+- **Chrome Sidebar**: Integrated sidebar panel for managing selections
+- **Compact Design**: Optimized layout for narrow sidebar view
+- **Real-time Filtering**: Search and filter by tags or action types
+- **Quick Access**: One-click access from extension popup
+- **Persistent View**: Sidebar stays open while browsing management. SelectCare allows users to capture, categorize, and interact with selected text through an intuitive popup interface.
 
 ## ✨ Features
 
@@ -10,10 +15,18 @@ A powerful Chrome extension for intelligent text selection and management. Selec
 - **Smooth Animations**: Cubic-bezier transitions with bounce effects
 
 ### 🏷️ **Advanced Tag System**
-- **Flexible Tagging**: Support for multi-word tags like `machine learning` or `front end development`
-- **Visual Tag Chips**: Blue animated chips with edit and remove functionality
-- **Real-time Input**: Type any text and press Enter to create tags
-- **Tag Management**: Click to edit, remove with × button, or use backspace when input is empty
+- **Smart Tag Input**: Custom tag input component with visual chips
+- **No Prefix Required**: Simply type tag names without special characters
+- **Keyboard Friendly**: Enter to add tags, backspace to remove
+- **Hidden Function Tags**: Automatic categorization by action type
+- **Space Preservation**: Handles tags with spaces correctly
+
+### 💾 **Data Persistence**
+- **IndexedDB Storage**: All selections saved locally in browser's IndexedDB
+- **Real-time Updates**: Dashboard refreshes automatically when new selections are saved
+- **CRUD Operations**: Create, read, update, and delete selections
+- **Data Privacy**: All data stored locally on user's machine
+- **No Cloud Dependency**: Works completely offline
 
 ### ⌨️ **Smart Keyboard Handling**
 - **Shortcut Prevention**: Prevents webpage shortcuts (like X.com's "n" key) from interfering
@@ -24,7 +37,7 @@ A powerful Chrome extension for intelligent text selection and management. Selec
 - **Quick Access**: Click the extension icon for instant access
 - **Usage Instructions**: Visual guide on how to use the extension
 - **Action Preview**: See all three action types (Remember, Note, AI)
-- **Dashboard Link**: One-click access to the management dashboard
+- **Sidebar Access**: One-click button to open the management sidebar
 - **Modern Design**: Glassmorphism UI matching the content script design
 
 ### 🎨 **Modern UI Design**
@@ -33,25 +46,22 @@ A powerful Chrome extension for intelligent text selection and management. Selec
 - **Accessibility**: Proper focus states and keyboard navigation
 - **Consistent Styling**: Apple-inspired design language throughout
 
-## 🚀 Quick Start
+## 🚀 **Getting Started**
 
-### Installation
-1. Clone this repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Build the extension:
-   ```bash
-   npm run build
-   ```
-4. Load in Chrome:
-   - Open `chrome://extensions/`
-   - Enable "Developer mode"
-   - Click "Load unpacked"
-   - Select the `dist` folder
+### **Installation**
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Build the extension: `npm run build`
+4. Load `dist` folder as unpacked extension in Chrome
+5. **Note**: Sidebar API requires Chrome 114+ for full functionality
 
-### Usage
+### **Chrome Sidebar Requirements**
+- **Chrome Version**: 114 or higher
+- **Developer Mode**: Enable in Chrome extensions page
+- **Permissions**: Extension includes `sidePanel` permission
+- **Fallback**: If sidebar fails, dashboard opens in new tab
+
+### **Usage**
 1. **Select Text**: Highlight any text on a webpage
 2. **Choose Action**: Click one of three buttons:
    - 🌐 **Remember**: Translate and save new words

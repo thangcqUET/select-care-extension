@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 
 interface Selection {
   id: string;
-  selectedText: string;
-  actionType: 'learn' | 'note' | 'ai';
+  text: string;
+  context: {
+    sourceUrl: string;
+    targetLanguage?: string;
+    question?: string;
+  };
   tags: string[];
-  timestamp: string;
-  sourceUrl: string;
-  targetLanguage?: string;
-  question?: string;
+  type: 'learn' | 'note' | 'ai';
+  metadata: {
+    timestamp: string;
+  };
 }
 
 const Dashboard: React.FC = () => {
@@ -18,46 +22,29 @@ const Dashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedActionType, setSelectedActionType] = useState<string>('all');
 
-  // Mock data for demonstration
+  // Load selections from IndexedDB instead of mock data
   useEffect(() => {
-    const mockData: Selection[] = [
-      {
-        id: '1',
-        selectedText: 'Machine learning is a subset of artificial intelligence',
-        actionType: 'note',
-        tags: ['fn_note', 'machine learning', 'AI', 'technology'],
-        timestamp: new Date().toISOString(),
-        sourceUrl: 'https://example.com/ai-article'
-      },
-      {
-        id: '2',
-        selectedText: 'Bonjour',
-        actionType: 'learn',
-        tags: ['fn_learn'],
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        sourceUrl: 'https://example.com/french-lesson',
-        targetLanguage: 'English'
-      },
-      {
-        id: '3',
-        selectedText: 'React hooks provide a way to use state in functional components',
-        actionType: 'ai',
-        tags: ['fn_chat'],
-        timestamp: new Date(Date.now() - 7200000).toISOString(),
-        sourceUrl: 'https://react.dev/docs',
-        question: 'Explain React hooks in simple terms'
-      },
-      {
-        id: '4',
-        selectedText: 'Responsive web design principles',
-        actionType: 'note',
-        tags: ['fn_note', 'web design', 'CSS', 'responsive'],
-        timestamp: new Date(Date.now() - 10800000).toISOString(),
-        sourceUrl: 'https://developer.mozilla.org'
+    const loadSelections = async () => {
+      try {
+        const response = await chrome.runtime.sendMessage({ action: 'getAllSelections' });
+        if (response.success) {
+          setSelections(response.data);
+          setFilteredSelections(response.data);
+        } else {
+          console.error('Failed to load selections:', response.error);
+          // Fallback to empty array if error
+          setSelections([]);
+          setFilteredSelections([]);
+        }
+      } catch (error) {
+        console.error('Error loading selections:', error);
+        // Fallback to empty array if error
+        setSelections([]);
+        setFilteredSelections([]);
       }
-    ];
-    setSelections(mockData);
-    setFilteredSelections(mockData);
+    };
+
+    loadSelections();
   }, []);
 
   // Get all unique tags (excluding function tags)
@@ -78,8 +65,8 @@ const Dashboard: React.FC = () => {
     let filtered = selections.filter(selection => {
       // Search filter
       const matchesSearch = searchQuery === '' || 
-        selection.selectedText.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        selection.sourceUrl.toLowerCase().includes(searchQuery.toLowerCase());
+        selection.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        selection.context.sourceUrl.toLowerCase().includes(searchQuery.toLowerCase());
 
       // Tag filter
       const matchesTags = selectedTags.length === 0 || 
@@ -109,6 +96,37 @@ const Dashboard: React.FC = () => {
     setSelectedActionType('all');
   };
 
+  const deleteSelection = async (id: string) => {
+    try {
+      const response = await chrome.runtime.sendMessage({ 
+        action: 'deleteSelection', 
+        data: { id } 
+      });
+      
+      if (response.success) {
+        // Remove from local state
+        const updatedSelections = selections.filter(s => s.id !== id);
+        setSelections(updatedSelections);
+        console.log('Selection deleted successfully');
+      } else {
+        console.error('Failed to delete selection:', response.error);
+      }
+    } catch (error) {
+      console.error('Error deleting selection:', error);
+    }
+  };
+
+  const refreshSelections = async () => {
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'getAllSelections' });
+      if (response.success) {
+        setSelections(response.data);
+      }
+    } catch (error) {
+      console.error('Error refreshing selections:', error);
+    }
+  };
+
   const formatDate = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
   };
@@ -133,170 +151,179 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header */}
+      {/* Header - Compact for sidebar */}
       <div className="bg-white/70 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="px-4 py-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">
-              SelectCare Dashboard
-            </h1>
-            <div className="text-sm text-gray-500">
-              {filteredSelections.length} of {selections.length} selections
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">SelectCare</h1>
+              <p className="text-xs text-gray-600">Manage your selections</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={refreshSelections}
+                className="text-sm text-blue-600 hover:text-blue-800 px-2 py-1 rounded"
+                title="Refresh data"
+              >
+                🔄
+              </button>
+              <div className="text-sm text-gray-500">
+                {filteredSelections.length} items
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          
-          {/* Sidebar - Filters */}
-          <div className="lg:col-span-1">
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-gray-200 sticky top-24">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+      <div className="px-4 py-4 space-y-4">
+        
+        {/* Filters - Compact layout for sidebar */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-gray-200">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-900">Filters</h2>
+            <button
+              onClick={clearFilters}
+              className="text-xs text-blue-600 hover:text-blue-800"
+            >
+              Clear
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="mb-3">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Action Type Filter - Compact */}
+          <div className="mb-3">
+            <select
+              value={selectedActionType}
+              onChange={(e) => setSelectedActionType(e.target.value)}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Types</option>
+              <option value="learn">🌐 Learn</option>
+              <option value="note">📝 Notes</option>
+              <option value="ai">🤖 AI</option>
+            </select>
+          </div>
+
+          {/* Tags Filter - Wrap for narrow sidebar */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-2">Tags</label>
+            <div className="flex flex-wrap gap-1">
+              {allTags.map(tag => (
                 <button
-                  onClick={clearFilters}
-                  className="text-sm text-blue-600 hover:text-blue-800"
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  className={`px-2 py-1 text-xs rounded-full border transition-colors ${
+                    selectedTags.includes(tag)
+                      ? 'bg-blue-100 text-blue-800 border-blue-300'
+                      : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                  }`}
                 >
-                  Clear All
+                  {tag}
                 </button>
-              </div>
-
-              {/* Search */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search
-                </label>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search selections..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Action Type Filter */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Action Type
-                </label>
-                <select
-                  value={selectedActionType}
-                  onChange={(e) => setSelectedActionType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="all">All Types</option>
-                  <option value="learn">🌐 Learn</option>
-                  <option value="note">📝 Notes</option>
-                  <option value="chat">🤖 AI Chat</option>
-                </select>
-              </div>
-
-              {/* Tags Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tags
-                </label>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {allTags.map(tag => (
-                    <label key={tag} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedTags.includes(tag)}
-                        onChange={() => toggleTag(tag)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">{tag}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
           </div>
+        </div>
 
-          {/* Main Content - Selections List */}
-          <div className="lg:col-span-3">
-            <div className="space-y-4">
-              {filteredSelections.length === 0 ? (
-                <div className="bg-white/70 backdrop-blur-sm rounded-xl p-8 text-center border border-gray-200">
-                  <div className="text-gray-400 text-4xl mb-4">📝</div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No selections found</h3>
-                  <p className="text-gray-500">Try adjusting your filters or start selecting text on websites.</p>
-                </div>
-              ) : (
-                filteredSelections.map(selection => (
-                  <div
-                    key={selection.id}
-                    className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-shadow"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-2xl">{getActionIcon(selection.actionType)}</span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getActionColor(selection.actionType)}`}>
-                          {selection.actionType.charAt(0).toUpperCase() + selection.actionType.slice(1)}
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {formatDate(selection.timestamp)}
-                      </div>
-                    </div>
-
-                    <div className="mb-4">
-                      <p className="text-gray-900 text-lg leading-relaxed">
-                        "{selection.selectedText}"
-                      </p>
-                    </div>
-
-                    {/* Additional Info */}
-                    {selection.targetLanguage && (
-                      <div className="mb-3">
-                        <span className="text-sm text-gray-600">Target Language: </span>
-                        <span className="text-sm font-medium text-gray-900">{selection.targetLanguage}</span>
-                      </div>
-                    )}
-
-                    {selection.question && (
-                      <div className="mb-3">
-                        <span className="text-sm text-gray-600">Question: </span>
-                        <span className="text-sm font-medium text-gray-900">{selection.question}</span>
-                      </div>
-                    )}
-
-                    {/* Tags */}
-                    <div className="mb-3">
-                      <div className="flex flex-wrap gap-2">
-                        {selection.tags
-                          .filter(tag => !tag.startsWith('fn_'))
-                          .map(tag => (
-                            <span
-                              key={tag}
-                              className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                      </div>
-                    </div>
-
-                    {/* Source URL */}
-                    <div className="text-sm text-gray-500 truncate">
-                      <span>Source: </span>
-                      <a
-                        href={selection.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        {selection.sourceUrl}
-                      </a>
-                    </div>
+        {/* Selection Items - Single column for sidebar */}
+        <div className="space-y-3">
+          {filteredSelections.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-2">📋</div>
+              <p className="text-gray-500 text-sm">No selections found</p>
+              <p className="text-gray-400 text-xs mt-1">
+                {selections.length === 0 ? 'Start selecting text on web pages!' : 'Try adjusting your filters'}
+              </p>
+            </div>
+          ) : (
+            filteredSelections.map(selection => (
+              <div
+                key={selection.id}
+                className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-gray-200 hover:shadow-md transition-shadow"
+              >
+                {/* Selection Header - Compact */}
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">{getActionIcon(selection.type)}</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getActionColor(selection.type)}`}>
+                      {selection.type.charAt(0).toUpperCase() + selection.type.slice(1)}
+                    </span>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-500">
+                      {formatDate(selection.metadata.timestamp)}
+                    </span>
+                    <button
+                      onClick={() => deleteSelection(selection.id)}
+                      className="text-red-400 hover:text-red-600 text-xs px-1 py-0.5 rounded"
+                      title="Delete selection"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+
+                {/* Selected Text */}
+                <div className="mb-2">
+                  <p className="text-sm text-gray-900 leading-relaxed">
+                    "{selection.text}"
+                  </p>
+                </div>
+
+                {/* Additional Info */}
+                {selection.context.targetLanguage && (
+                  <div className="mb-2">
+                    <span className="text-xs text-gray-600">Target: {selection.context.targetLanguage}</span>
+                  </div>
+                )}
+
+                {selection.context.question && (
+                  <div className="mb-2">
+                    <p className="text-xs text-gray-600">Q: {selection.context.question}</p>
+                  </div>
+                )}
+
+                {/* Tags - Wrap for narrow sidebar */}
+                <div className="mb-2">
+                  <div className="flex flex-wrap gap-1">
+                    {selection.tags
+                      .filter(tag => !tag.startsWith('fn_'))
+                      .map(tag => (
+                        <span
+                          key={tag}
+                          className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Source URL - Truncated for sidebar */}
+                <div className="text-xs text-gray-500">
+                  <a
+                    href={selection.context.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 truncate block"
+                    title={selection.context.sourceUrl}
+                  >
+                    {selection.context.sourceUrl.replace(/^https?:\/\//, '').substring(0, 40)}...
+                  </a>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

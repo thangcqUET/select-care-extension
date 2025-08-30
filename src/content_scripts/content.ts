@@ -745,8 +745,8 @@ class FormPopup {
         break;
       case 'ai':
         data.question = inputValue || 'Explain this text';
-        // Add hidden function tag for AI/chat
-        data.tags = ['fn_chat'];
+        // Add hidden function tag for AI
+        data.tags = ['fn_ai'];
         break;
     }
 
@@ -785,7 +785,7 @@ class FormPopup {
     // TODO: Implement AI API call
     let chatSelection = convertToSelection(data);
     const response = await chrome.runtime.sendMessage({
-      action: 'chat',
+      action: 'ai',
       data: chatSelection
     });
     console.log('Response from background:', response);

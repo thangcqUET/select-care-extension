@@ -1,8 +1,26 @@
 function App() {
-  const openDashboard = () => {
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('dashboard.html')
-    });
+  const openDashboard = async () => {
+    try {
+      // Get the current active tab
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (tab?.id) {
+        // Open the side panel for the current tab
+        await chrome.sidePanel.open({ tabId: tab.id });
+        
+        // Close the popup after opening sidebar
+        window.close();
+      }
+    } catch (error) {
+      console.error('Failed to open side panel:', error);
+      // Fallback to opening in new tab if sidebar fails
+      chrome.tabs.create({
+        url: chrome.runtime.getURL('dashboard.html')
+      });
+      
+      // Close the popup even for fallback
+      window.close();
+    }
   };
 
   return (
@@ -28,6 +46,10 @@ function App() {
           <li className="flex items-start">
             <span className="font-medium text-blue-600 mr-2">3.</span>
             Fill in details and save
+          </li>
+          <li className="flex items-start">
+            <span className="font-medium text-blue-600 mr-2">4.</span>
+            Open sidebar to manage your selections
           </li>
         </ol>
       </div>
@@ -56,7 +78,7 @@ function App() {
         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
       >
         <span>📊</span>
-        <span>Open Dashboard</span>
+        <span>Open Sidebar</span>
       </button>
 
       {/* Footer */}
