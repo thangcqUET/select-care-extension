@@ -1,9 +1,9 @@
 
 // Define selection type
-export type SelectionType = 'remember' | 'note' | 'chat';
+export type SelectionType = 'learn' | 'note' | 'chat';
 
 // Define specific data types for each selection type
-export interface RememberSpecificData {
+export interface LearnSpecificData {
   image?: string;
   pieces: {
     language: string;
@@ -26,8 +26,8 @@ export type BasedSelection =
       text: string;
       context: Record<string, any>;
       tags: string[];
-      type: 'remember';
-      specific_data: RememberSpecificData;
+      type: 'learn';
+      specific_data: LearnSpecificData;
       metadata: Record<string, any>;
     }
   | {

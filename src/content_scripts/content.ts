@@ -221,7 +221,7 @@ class SelectPopup {
     });
 
     const icons = [
-      { emoji: '🌏', action: 'remember', title: 'Remember it' },
+      { emoji: '🌏', action: 'learn', title: 'Learn it' },
       { emoji: '📝', action: 'note', title: 'Save as Note' },
       { emoji: '🤖', action: 'ai', title: 'Ask AI' }
     ];
@@ -249,8 +249,8 @@ class SelectPopup {
     const textToProcess = savedSelectedText || '';
 
     switch (action) {
-      case 'remember':
-        this.handleRememberAction(textToProcess);
+      case 'learn':
+        this.handleLearnAction(textToProcess);
         break;
       case 'note':
         this.handleNoteAction(textToProcess);
@@ -262,9 +262,9 @@ class SelectPopup {
     this.hide();
   }
 
-  private handleRememberAction(text: string) {
-    // console.log('🌐 Opening remember form for:', text);
-    const formPopup = new FormPopup('remember', text);
+  private handleLearnAction(text: string) {
+    // console.log('🌐 Opening learn form for:', text);
+    const formPopup = new FormPopup('learn', text);
     if (selectionPosition) {
       formPopup.show(selectionPosition);
     }
@@ -523,9 +523,9 @@ class FormPopup {
     const title = document.createElement('span');
 
     switch (this.actionType) {
-      case 'remember':
+      case 'learn':
         icon.textContent = '🌐';
-        title.textContent = 'Remember it';
+        title.textContent = 'Learn it';
         break;
       case 'note':
         icon.textContent = '📌';
@@ -623,7 +623,7 @@ class FormPopup {
     input.id = 'mainInput';
 
     switch (this.actionType) {
-      case 'remember':
+      case 'learn':
         input.placeholder = 'Target language (e.g., English, Spanish)';
         input.value = 'English';
         break;
@@ -673,8 +673,8 @@ class FormPopup {
 
   private getSaveButtonText(): string {
     switch (this.actionType) {
-      case 'remember':
-        return 'Remember it';
+      case 'learn':
+        return 'Learn it';
       case 'note':
         return 'Save Note';
       case 'ai':
@@ -690,8 +690,8 @@ class FormPopup {
     
     // TODO: Implement actual save logic based on action type
     switch (this.actionType) {
-      case 'remember':
-        this.saveRemember(formData);
+      case 'learn':
+        this.saveLearn(formData);
         break;
       case 'note':
         this.saveNote(formData);
@@ -734,11 +734,11 @@ class FormPopup {
 
     // Set data based on action type
     switch (this.actionType) {
-      case 'remember':
+      case 'learn':
         data.targetLanguage = inputValue || 'English';
         data.sourceLanguage = 'auto';
-        // Add hidden function tag for remember
-        data.tags = ['fn_remember'];
+        // Add hidden function tag for learn
+        data.tags = ['fn_learn'];
         break;
       case 'note':
         // Tags already handled above with fn_note
@@ -753,14 +753,14 @@ class FormPopup {
     return data;
   }
 
-  private async saveRemember(data: any) {
-    console.log('💾 Saving remember data:', data);
-    // TODO: Implement remember API and storage
-    let rememberSelection = convertToSelection(data);
-    console.log('Created remember selection:', rememberSelection);
+  private async saveLearn(data: any) {
+    console.log('💾 Saving learn data:', data);
+    // TODO: Implement learn API and storage
+    let learnSelection = convertToSelection(data);
+    console.log('Created learn selection:', learnSelection);
     const response = await chrome.runtime.sendMessage({
-      action: 'remember',
-      data: rememberSelection
+      action: 'learn',
+      data: learnSelection
     });
     console.log('Response from background:', response);
   }

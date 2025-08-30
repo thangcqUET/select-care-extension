@@ -23,7 +23,7 @@ function App() {
           </li>
           <li className="flex items-start">
             <span className="font-medium text-blue-600 mr-2">2.</span>
-            Choose an action: Remember, Note, or Ask AI
+            Choose an action: Learn, Note, or Ask AI
           </li>
           <li className="flex items-start">
             <span className="font-medium text-blue-600 mr-2">3.</span>
@@ -37,7 +37,7 @@ function App() {
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
             <div className="text-2xl mb-1">🌐</div>
-            <div className="text-xs font-medium text-gray-700">Remember</div>
+            <div className="text-xs font-medium text-gray-700">Learn</div>
           </div>
           <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
             <div className="text-2xl mb-1">📝</div>

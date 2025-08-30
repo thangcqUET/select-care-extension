@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 interface Selection {
   id: string;
   selectedText: string;
-  actionType: 'remember' | 'note' | 'ai';
+  actionType: 'learn' | 'note' | 'ai';
   tags: string[];
   timestamp: string;
   sourceUrl: string;
@@ -32,8 +32,8 @@ const Dashboard: React.FC = () => {
       {
         id: '2',
         selectedText: 'Bonjour',
-        actionType: 'remember',
-        tags: ['fn_remember'],
+        actionType: 'learn',
+        tags: ['fn_learn'],
         timestamp: new Date(Date.now() - 3600000).toISOString(),
         sourceUrl: 'https://example.com/french-lesson',
         targetLanguage: 'English'
@@ -115,7 +115,7 @@ const Dashboard: React.FC = () => {
 
   const getActionIcon = (actionType: string) => {
     switch (actionType) {
-      case 'remember': return '🌐';
+      case 'learn': return '🌐';
       case 'note': return '📝';
       case 'ai': return '🤖';
       default: return '📄';
@@ -124,7 +124,7 @@ const Dashboard: React.FC = () => {
 
   const getActionColor = (actionType: string) => {
     switch (actionType) {
-      case 'remember': return 'bg-blue-100 text-blue-800';
+      case 'learn': return 'bg-blue-100 text-blue-800';
       case 'note': return 'bg-green-100 text-green-800';
       case 'ai': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -188,7 +188,7 @@ const Dashboard: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="all">All Types</option>
-                  <option value="remember">🌐 Remember</option>
+                  <option value="learn">🌐 Learn</option>
                   <option value="note">📝 Notes</option>
                   <option value="chat">🤖 AI Chat</option>
                 </select>
