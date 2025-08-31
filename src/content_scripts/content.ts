@@ -223,7 +223,7 @@ class SelectPopup {
     const icons = [
       { emoji: '🌏', action: 'learn', title: 'Learn it' },
       { emoji: '📝', action: 'note', title: 'Save as Note' },
-      { emoji: '🤖', action: 'ai', title: 'Ask AI' }
+      { emoji: '🤖', action: 'chat', title: 'Ask AI' }
     ];
 
     icons.forEach(icon => {
@@ -255,7 +255,7 @@ class SelectPopup {
       case 'note':
         this.handleNoteAction(textToProcess);
         break;
-      case 'ai':
+      case 'chat':
         this.handleAiAction(textToProcess);
         break;
     }
@@ -280,7 +280,7 @@ class SelectPopup {
 
   private handleAiAction(text: string) {
     // console.log('🤖 Opening AI form for:', text);
-    const formPopup = new FormPopup('ai', text);
+    const formPopup = new FormPopup('chat', text);
     if (selectionPosition) {
       formPopup.show(selectionPosition);
     }
@@ -531,7 +531,7 @@ class FormPopup {
         icon.textContent = '📌';
         title.textContent = 'Save Note';
         break;
-      case 'ai':
+      case 'chat':
         icon.textContent = '🤖';
         title.textContent = 'Ask AI';
         break;
@@ -627,7 +627,7 @@ class FormPopup {
         input.placeholder = 'Target language (e.g., English, Spanish)';
         input.value = 'English';
         break;
-      case 'ai':
+      case 'chat':
         input.placeholder = 'What would you like to ask?';
         break;
     }
@@ -677,7 +677,7 @@ class FormPopup {
         return 'Learn it';
       case 'note':
         return 'Save Note';
-      case 'ai':
+      case 'chat':
         return 'Ask AI';
       default:
         return 'Save';
@@ -696,7 +696,7 @@ class FormPopup {
       case 'note':
         this.saveNote(formData);
         break;
-      case 'ai':
+      case 'chat':
         this.askAI(formData);
         break;
     }
@@ -743,7 +743,7 @@ class FormPopup {
       case 'note':
         // Tags already handled above with fn_note
         break;
-      case 'ai':
+      case 'chat':
         data.question = inputValue || 'Explain this text';
         // Add hidden function tag for AI
         data.tags = ['fn_ai'];
@@ -785,7 +785,7 @@ class FormPopup {
     // TODO: Implement AI API call
     let chatSelection = convertToSelection(data);
     const response = await chrome.runtime.sendMessage({
-      action: 'ai',
+      action: 'chat',
       data: chatSelection
     });
     console.log('Response from background:', response);

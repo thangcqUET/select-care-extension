@@ -24,12 +24,12 @@ chrome.runtime.onStartup.addListener(() => {
 
 // Handle messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.action === 'note' || message.action === 'learn' || message.action === 'ai') {
+  if (message.action === 'note' || message.action === 'learn' || message.action === 'chat') {
     console.log('Received selection:', message.data);
-    
+    let selection_id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
     // Create selection with new data structure
     const selection = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      selection_id,
       text: message.data.text,
       context: {
         sourceUrl: message.data.context.sourceUrl || 'unknown',

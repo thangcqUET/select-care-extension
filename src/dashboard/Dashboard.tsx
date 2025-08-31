@@ -121,7 +121,7 @@ const Dashboard: React.FC = () => {
     switch (actionType) {
       case 'learn': return '🌐';
       case 'note': return '📝';
-      case 'ai': return '🤖';
+      case 'chat': return '🤖';
       default: return '📄';
     }
   };
@@ -130,7 +130,7 @@ const Dashboard: React.FC = () => {
     switch (actionType) {
       case 'learn': return 'bg-blue-100 text-blue-800';
       case 'note': return 'bg-green-100 text-green-800';
-      case 'ai': return 'bg-purple-100 text-purple-800';
+      case 'chat': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -196,7 +196,7 @@ const Dashboard: React.FC = () => {
               <option value="all">All Types</option>
               <option value="learn">🌐 Learn</option>
               <option value="note">📝 Notes</option>
-              <option value="ai">🤖 AI</option>
+              <option value="chat">🤖 AI</option>
             </select>
           </div>
 
