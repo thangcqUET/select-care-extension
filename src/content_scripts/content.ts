@@ -7,6 +7,9 @@ let selectedText : string | undefined;
 let selectionPosition: DOMRect | undefined;
 let savedSelectedText: string | undefined;
 
+const SELECTION_CHANGE_DELAY = 10;
+const MOUSEUP_DELAY = SELECTION_CHANGE_DELAY+1;
+
 // Function to check if user is currently typing in an input field
 function isUserTyping(): boolean {
   const activeElement = document.activeElement;
@@ -53,7 +56,7 @@ document.addEventListener('selectionchange', throttle(() => {
   //   // show a popup beside the mouse with a emoji and the selected text
   //   console.log(`${selectedText}`);
   // }
-}, 10));
+}, SELECTION_CHANGE_DELAY));
 
 //listen mouse down event
 // document.addEventListener('mousedown', (event: MouseEvent) => {
@@ -61,8 +64,8 @@ document.addEventListener('selectionchange', throttle(() => {
 // });
 
 //listen mouse up event
-document.addEventListener('mouseup', () => {
-  // console.log('Mouse up at:', event.clientX, event.clientY);
+document.addEventListener('mouseup', (event: MouseEvent) => {
+  console.log('Mouse up at:', event.clientX, event.clientY);
   
   // Don't show popup if user is typing in an input field
   if (isUserTyping()) {
@@ -71,11 +74,14 @@ document.addEventListener('mouseup', () => {
   }
   
   // Only show popup if there's actual trimmed text content
-  if (selectedText && selectedText.length > 0) {
-    showPopup();
-    savedSelectedText = selectedText;
+  setTimeout(() => {
+
+    if (selectedText && selectedText.length > 0) {
+      showPopup();
+      savedSelectedText = selectedText;
+    }
+  }, MOUSEUP_DELAY);
     // selectedText = undefined;
-  }
 });
 
 
@@ -211,11 +217,13 @@ class SelectPopup {
 
     // Add hover event listeners to the popup
     popup.addEventListener('mouseenter', () => {
+      console.log("mouse enter");
       this.isHovering = true;
       this.clearHideTimeout();
     });
 
     popup.addEventListener('mouseleave', () => {
+      console.log("mouse leave");
       this.isHovering = false;
       this.scheduleHide();
     });
@@ -851,6 +859,7 @@ let popupInstance: SelectPopup | null = null;
 
 // function to show a popup with 3 clickable icons
 function showPopup() {
+  console.log("show popup!!");
   // Double-check that we have valid selection position and text
   if (!selectionPosition || !selectedText || selectedText.trim().length === 0) {
     return;
