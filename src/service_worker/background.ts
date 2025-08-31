@@ -93,12 +93,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
   
-  if (message.action === 'openSidePanel') {
-    // This will be handled by the popup directly using chrome.sidePanel.open()
-    // but we can add additional logic here if needed
-    console.log('Side panel open requested');
-    sendResponse({ success: true });
-  }
+  
 });
 
 // Optional: Handle extension icon click to open sidebar (alternative to popup)

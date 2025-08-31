@@ -7,6 +7,8 @@ let selectedText : string | undefined;
 let selectionPosition: DOMRect | undefined;
 let savedSelectedText: string | undefined;
 
+// Side panel toggle removed: feature disabled until sidePanel close API is available.
+
 const SELECTION_CHANGE_DELAY = 10;
 const MOUSEUP_DELAY = SELECTION_CHANGE_DELAY+1;
 

@@ -3,17 +3,30 @@ import react from '@vitejs/plugin-react'
 import fs from 'fs'
 import path from 'path'
 
-// Custom plugin to copy dashboard.html to root
-const copyDashboardPlugin = () => {
+// Custom plugin to copy built HTML files to desired locations in dist
+const copyBuiltHtmlPlugin = () => {
   return {
-    name: 'copy-dashboard',
+    name: 'copy-built-html',
     writeBundle() {
-      const srcPath = path.resolve('./dist/src/dashboard/dashboard.html')
-      const destPath = path.resolve('./dist/dashboard.html')
-      
-      if (fs.existsSync(srcPath)) {
-        fs.copyFileSync(srcPath, destPath)
-        console.log('✓ Copied dashboard.html to root')
+      const mappings = [
+        { src: './dist/src/dashboard/dashboard.html', dest: './dist/dashboard.html' },
+        { src: './dist/src/option_page/option.html', dest: './dist/option_page/option.html' },
+      ];
+
+      for (const m of mappings) {
+        const srcPath = path.resolve(m.src);
+        const destPath = path.resolve(m.dest);
+        const destDir = path.dirname(destPath);
+
+        try {
+          if (fs.existsSync(srcPath)) {
+            if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+            fs.copyFileSync(srcPath, destPath);
+            console.log(`✓ Copied ${srcPath} to ${destPath}`);
+          }
+        } catch (err) {
+          console.warn('Copy failed for', srcPath, err);
+        }
       }
     }
   }
@@ -21,7 +34,12 @@ const copyDashboardPlugin = () => {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), copyDashboardPlugin()],
+  plugins: [react(), copyBuiltHtmlPlugin()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
+  },
   base: './',
   build: {
     rollupOptions: {
@@ -29,7 +47,8 @@ export default defineConfig({
         popup: './src/extension_popup/popup.html',
         content: './src/content_scripts/content.ts',
         background: './src/service_worker/background.ts',
-        dashboard: './src/dashboard/dashboard.html'
+        dashboard: './src/dashboard/dashboard.html',
+        option: './src/option_page/option.html'
       },
       output: {
         entryFileNames: (chunkInfo) => {
