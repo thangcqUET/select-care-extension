@@ -29,7 +29,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     let selection_id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
     // Create selection with new data structure
     const selection = {
-      selection_id,
+      selection_id: selection_id,
       text: message.data.text,
       context: {
         sourceUrl: message.data.context.sourceUrl || 'unknown',
