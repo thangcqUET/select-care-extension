@@ -1,23 +1,9 @@
 import React, { useState, useEffect } from 'react';
-
-interface Selection {
-  id: string;
-  text: string;
-  context: {
-    sourceUrl: string;
-    targetLanguage?: string;
-    question?: string;
-  };
-  tags: string[];
-  type: 'learn' | 'note' | 'ai';
-  metadata: {
-    timestamp: string;
-  };
-}
+import { BasedSelection } from '../content_scripts/types';
 
 const Dashboard: React.FC = () => {
-  const [selections, setSelections] = useState<Selection[]>([]);
-  const [filteredSelections, setFilteredSelections] = useState<Selection[]>([]);
+  const [selections, setSelections] = useState<BasedSelection[]>([]);
+  const [filteredSelections, setFilteredSelections] = useState<BasedSelection[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedActionType, setSelectedActionType] = useState<string>('all');
@@ -105,7 +91,7 @@ const Dashboard: React.FC = () => {
       
       if (response.success) {
         // Remove from local state
-        const updatedSelections = selections.filter(s => s.id !== id);
+        const updatedSelections = selections.filter(s => s.selection_id !== id);
         setSelections(updatedSelections);
         console.log('Selection deleted successfully');
       } else {
@@ -248,7 +234,7 @@ const Dashboard: React.FC = () => {
           ) : (
             filteredSelections.map(selection => (
               <div
-                key={selection.id}
+                key={selection.selection_id}
                 className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-gray-200 hover:shadow-md transition-shadow"
               >
                 {/* Selection Header - Compact */}
@@ -264,7 +250,7 @@ const Dashboard: React.FC = () => {
                       {formatDate(selection.metadata.timestamp)}
                     </span>
                     <button
-                      onClick={() => deleteSelection(selection.id)}
+                      onClick={() => deleteSelection(selection.selection_id)}
                       className="text-red-400 hover:text-red-600 text-xs px-1 py-0.5 rounded"
                       title="Delete selection"
                     >

@@ -30,11 +30,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     // Create selection with new data structure
     const selection = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      text: message.data.selectedText || message.data.text,
+      text: message.data.text,
       context: {
-        sourceUrl: message.data.sourceUrl || 'unknown',
-        ...(message.data.targetLanguage && { targetLanguage: message.data.targetLanguage }),
-        ...(message.data.question && { question: message.data.question })
+        sourceUrl: message.data.context.sourceUrl || 'unknown',
+        // ...(message.data.targetLanguage && { targetLanguage: message.data.targetLanguage }),
+        // ...(message.data.question && { question: message.data.question })
       },
       tags: message.data.tags || [],
       type: message.action,
