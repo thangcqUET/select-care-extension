@@ -1,24 +1,113 @@
-import { createSelection } from "./types";
+import { selectionDB } from "./database";
 
 // Background service worker for Chrome extension
 console.log('Select Care Extension background script loaded');
 
+// Initialize database when extension loads
+selectionDB.init().catch(error => {
+  console.error('Failed to initialize IndexedDB:', error);
+});
+
 // Handle extension installation
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Select Care Extension installed');
+  // Initialize database on installation
+  selectionDB.init().catch(error => {
+    console.error('Failed to initialize IndexedDB on install:', error);
+  });
 });
 
-// Example: Handle messages from content scripts or popup
+// Handle sidebar panel availability
+chrome.runtime.onStartup.addListener(() => {
+  console.log('Extension startup - side panel available');
+});
+
+// Handle messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.action === 'note') {
-    const selection = createSelection(message.data);
-    console.log('Received note selection:', selection);
-    // Handle background actions here
+  if (message.action === 'note' || message.action === 'learn' || message.action === 'ai') {
+    console.log('Received selection:', message.data);
+    
+    // Create selection with new data structure
+    const selection = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      text: message.data.text,
+      context: {
+        sourceUrl: message.data.context.sourceUrl || 'unknown',
+        // ...(message.data.targetLanguage && { targetLanguage: message.data.targetLanguage }),
+        // ...(message.data.question && { question: message.data.question })
+      },
+      tags: message.data.tags || [],
+      type: message.action,
+      metadata: {
+        timestamp: new Date().toISOString()
+      }
+    };
+    
+    // Save to IndexedDB
+    selectionDB.saveSelection(selection).then(() => {
+      console.log('Selection saved to IndexedDB successfully');
+      sendResponse({ success: true, message: 'Selection saved successfully' });
+    }).catch(error => {
+      console.error('Failed to save selection to IndexedDB:', error);
+      sendResponse({ success: false, error: error.message });
+    });
+    
+    // Return true to indicate async response
+    return true;
+  }
+  
+  if (message.action === 'getAllSelections') {
+    selectionDB.getAllSelections().then(selections => {
+      sendResponse({ success: true, data: selections });
+    }).catch(error => {
+      console.error('Failed to get selections from IndexedDB:', error);
+      sendResponse({ success: false, error: error.message });
+    });
+    
+    // Return true to indicate async response
+    return true;
+  }
+  
+  if (message.action === 'deleteSelection') {
+    selectionDB.deleteSelection(message.data.id).then(() => {
+      console.log('Selection deleted from IndexedDB');
+      sendResponse({ success: true, message: 'Selection deleted successfully' });
+    }).catch(error => {
+      console.error('Failed to delete selection from IndexedDB:', error);
+      sendResponse({ success: false, error: error.message });
+    });
+    
+    // Return true to indicate async response
+    return true;
+  }
+  
+  if (message.action === 'searchSelections') {
+    selectionDB.searchSelections(message.data.query).then(selections => {
+      sendResponse({ success: true, data: selections });
+    }).catch(error => {
+      console.error('Failed to search selections in IndexedDB:', error);
+      sendResponse({ success: false, error: error.message });
+    });
+    
+    // Return true to indicate async response
+    return true;
+  }
+  
+  if (message.action === 'openSidePanel') {
+    // This will be handled by the popup directly using chrome.sidePanel.open()
+    // but we can add additional logic here if needed
+    console.log('Side panel open requested');
     sendResponse({ success: true });
   }
 });
 
-// Example: Handle extension icon click (if no popup)
-// chrome.action.onClicked.addListener((tab) => {
-//   console.log('Extension icon clicked', tab);
+// Optional: Handle extension icon click to open sidebar (alternative to popup)
+// chrome.action.onClicked.addListener(async (tab) => {
+//   if (tab?.id) {
+//     try {
+//       await chrome.sidePanel.open({ tabId: tab.id });
+//     } catch (error) {
+//       console.error('Failed to open side panel:', error);
+//     }
+//   }
 // });

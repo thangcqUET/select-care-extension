@@ -1,6 +1,11 @@
 # SelectCare Browser Extension
 
-A powerful Chrome extension for intelligent text selection and management. SelectCare allows users to capture, categorize, and interact with selected text through an intuitive popup interface.
+A powerful Chrome extension for intelligent text se### 📊 **Sidebar Dashboard**
+- **Chrome Sidebar**: Integrated sidebar panel for managing selections
+- **Compact Design**: Optimized layout for narrow sidebar view
+- **Real-time Filtering**: Search and filter by tags or action types
+- **Quick Access**: One-click access from extension popup
+- **Persistent View**: Sidebar stays open while browsing management. SelectCare allows users to capture, categorize, and interact with selected text through an intuitive popup interface.
 
 ## ✨ Features
 
@@ -10,15 +15,30 @@ A powerful Chrome extension for intelligent text selection and management. Selec
 - **Smooth Animations**: Cubic-bezier transitions with bounce effects
 
 ### 🏷️ **Advanced Tag System**
-- **Flexible Tagging**: Support for multi-word tags like `machine learning` or `front end development`
-- **Visual Tag Chips**: Blue animated chips with edit and remove functionality
-- **Real-time Input**: Type any text and press Enter to create tags
-- **Tag Management**: Click to edit, remove with × button, or use backspace when input is empty
+- **Smart Tag Input**: Custom tag input component with visual chips
+- **No Prefix Required**: Simply type tag names without special characters
+- **Keyboard Friendly**: Enter to add tags, backspace to remove
+- **Hidden Function Tags**: Automatic categorization by action type
+- **Space Preservation**: Handles tags with spaces correctly
+
+### 💾 **Data Persistence**
+- **IndexedDB Storage**: All selections saved locally in browser's IndexedDB
+- **Real-time Updates**: Dashboard refreshes automatically when new selections are saved
+- **CRUD Operations**: Create, read, update, and delete selections
+- **Data Privacy**: All data stored locally on user's machine
+- **No Cloud Dependency**: Works completely offline
 
 ### ⌨️ **Smart Keyboard Handling**
 - **Shortcut Prevention**: Prevents webpage shortcuts (like X.com's "n" key) from interfering
 - **Custom Event System**: Advanced keyboard event handling through Shadow DOM
 - **Focus Management**: Intelligent detection of user typing states
+
+### 🔧 **Extension Popup**
+- **Quick Access**: Click the extension icon for instant access
+- **Usage Instructions**: Visual guide on how to use the extension
+- **Action Preview**: See all three action types (Remember, Note, AI)
+- **Sidebar Access**: One-click button to open the management sidebar
+- **Modern Design**: Glassmorphism UI matching the content script design
 
 ### 🎨 **Modern UI Design**
 - **Glassmorphism**: Translucent backgrounds with backdrop blur effects
@@ -26,25 +46,22 @@ A powerful Chrome extension for intelligent text selection and management. Selec
 - **Accessibility**: Proper focus states and keyboard navigation
 - **Consistent Styling**: Apple-inspired design language throughout
 
-## 🚀 Quick Start
+## 🚀 **Getting Started**
 
-### Installation
-1. Clone this repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Build the extension:
-   ```bash
-   npm run build
-   ```
-4. Load in Chrome:
-   - Open `chrome://extensions/`
-   - Enable "Developer mode"
-   - Click "Load unpacked"
-   - Select the `dist` folder
+### **Installation**
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Build the extension: `npm run build`
+4. Load `dist` folder as unpacked extension in Chrome
+5. **Note**: Sidebar API requires Chrome 114+ for full functionality
 
-### Usage
+### **Chrome Sidebar Requirements**
+- **Chrome Version**: 114 or higher
+- **Developer Mode**: Enable in Chrome extensions page
+- **Permissions**: Extension includes `sidePanel` permission
+- **Fallback**: If sidebar fails, dashboard opens in new tab
+
+### **Usage**
 1. **Select Text**: Highlight any text on a webpage
 2. **Choose Action**: Click one of three buttons:
    - 🌐 **Remember**: Translate and save new words
@@ -52,6 +69,7 @@ A powerful Chrome extension for intelligent text selection and management. Selec
    - 🤖 **Ask AI**: Get AI insights about the text
 3. **Add Details**: Fill in the form popup with relevant information
 4. **Save**: Your selection is processed and stored
+5. **Access Dashboard**: Click the extension icon and select "Open Dashboard"
 
 ## 📋 Action Types
 
@@ -73,6 +91,29 @@ A powerful Chrome extension for intelligent text selection and management. Selec
 - **Use Case**: Understanding complex concepts, getting summaries
 - **Hidden Tag**: `fn_chat` (automatically added)
 
+## 📊 **Dashboard**
+
+### **Management Interface**
+A React-based dashboard for managing and viewing all saved selections:
+
+- **Modern UI**: Built with React + TypeScript + Vite + TailwindCSS
+- **Real-time Filtering**: Search by text, filter by tags and action types
+- **Visual Organization**: Cards with glassmorphism design and action icons
+- **Tag Management**: Visual tag chips with filtering capabilities
+- **Source Tracking**: Links back to original webpage sources
+
+### **Dashboard Features**
+- 🔍 **Search**: Find selections by text content or source URL
+- 🏷️ **Tag Filtering**: Filter by user tags (excluding function tags)
+- 📝 **Action Filtering**: Filter by Remember/Note/AI Chat actions
+- 📅 **Timestamp Display**: See when each selection was made
+- 🔗 **Source Links**: Click to visit the original webpage
+
+### **Access Dashboard**
+- Open `chrome://extensions/`
+- Find "SelectCare Extension"
+- Click "Options" or access via `dashboard.html`
+
 ## 🏷️ **Tag System**
 
 ### **Automatic Function Tags**
@@ -91,12 +132,20 @@ Each action type automatically includes a hidden function tag for easy filtering
 
 ### **Component Structure**
 ```
-content_scripts/
-├── content.ts              # Main content script
-├── components/
-│   └── TagInput.ts         # Reusable tag input component
-├── utils.ts                # Utility functions
-└── data_mapper.ts          # Data transformation
+src/
+├── content_scripts/        # Content script functionality
+│   ├── content.ts          # Main content script
+│   ├── components/
+│   │   └── TagInput.ts     # Reusable tag input component
+│   ├── utils.ts            # Utility functions
+│   └── data_mapper.ts      # Data transformation
+├── dashboard/              # React dashboard
+│   ├── Dashboard.tsx       # Main dashboard component
+│   ├── main.tsx           # React entry point
+│   ├── dashboard.html     # Dashboard HTML template
+│   └── index.css          # TailwindCSS styles
+├── extension_popup/        # Extension popup UI
+└── service_worker/         # Background script
 ```
 
 ### **Key Technologies**
