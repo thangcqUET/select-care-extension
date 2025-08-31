@@ -135,6 +135,18 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  function TextWithLineBreaks({ text }: { text: string }) {
+    // Split the text by newline characters and map each segment to a React element
+    const lines = text.split('\n').map((line, index) => (
+      <React.Fragment key={index}>
+        {line}
+        {/* Add a <br /> tag after each line except the last one */}
+        {index < text.split('\n').length - 1 && <br />}
+      </React.Fragment>
+    ));
+
+    return <div>{lines}</div>;
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header - Compact for sidebar */}
@@ -262,7 +274,7 @@ const Dashboard: React.FC = () => {
                 {/* Selected Text */}
                 <div className="mb-2">
                   <p className="text-sm text-gray-900 leading-relaxed">
-                    "{selection.text}"
+                    <TextWithLineBreaks text={selection.text} />
                   </p>
                 </div>
 
