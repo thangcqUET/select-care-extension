@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BasedSelection } from '../content_scripts/types';
+import KnowledgeCard from './KnowledgeCard';
 
 const Dashboard: React.FC = () => {
   const [selections, setSelections] = useState<BasedSelection[]>([]);
@@ -8,6 +9,7 @@ const Dashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedActionType, setSelectedActionType] = useState<string>('all');
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   // Load selections from IndexedDB instead of mock data
   useEffect(() => {
@@ -151,6 +153,18 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const getUserStats = () => {
+    const today = new Date().toDateString();
+    const todaySelections = selections.filter(s => 
+      new Date(s.metadata.timestamp).toDateString() === today
+    );
+    
+    return {
+      totalSelections: selections.length,
+      todayCount: todaySelections.length
+    };
+  };
+
   function TextWithLineBreaks({ text }: { text: string }) {
     // Split the text by newline characters and map each segment to a React element
     const lines = text.split('\n').map((line, index) => (
@@ -201,6 +215,27 @@ const Dashboard: React.FC = () => {
             >
               Clear
             </button>
+          </div>
+
+          {/* Stats Dashboard */}
+          <div className="mb-4 p-3 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg border">
+            <h2 className="text-sm font-bold text-gray-900 mb-2">📊 Your Learning Stats</h2>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="text-center">
+                <div className="text-lg font-bold text-indigo-600">{getUserStats().totalSelections}</div>
+                <div className="text-gray-600">Total</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-green-600">{getUserStats().todayCount}</div>
+                <div className="text-gray-600">Today</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-purple-600">
+                  {selections.filter(s => s.type === 'note').length}
+                </div>
+                <div className="text-gray-600">Notes</div>
+              </div>
+            </div>
           </div>
 
           {/* Search */}
@@ -351,6 +386,30 @@ const Dashboard: React.FC = () => {
                     )}
                   </div>
                 )}
+
+                {/* Share Card Section */}
+                <div className="mb-2">
+                  <button
+                    onClick={() => {
+                      const newExpanded = new Set(expandedCards);
+                      if (newExpanded.has(selection.selection_id)) {
+                        newExpanded.delete(selection.selection_id);
+                      } else {
+                        newExpanded.add(selection.selection_id);
+                      }
+                      setExpandedCards(newExpanded);
+                    }}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer bg-transparent border-none p-0"
+                  >
+                    {expandedCards.has(selection.selection_id) ? 'Hide Card' : '✨ Generate Share Card'}
+                  </button>
+                  {expandedCards.has(selection.selection_id) && (
+                    <KnowledgeCard 
+                      selection={selection} 
+                      userStats={getUserStats()}
+                    />
+                  )}
+                </div>
 
                 {/* Source URL - Truncated for sidebar */}
                 <div className="text-xs text-gray-500">

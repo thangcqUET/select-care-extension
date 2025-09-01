@@ -674,6 +674,17 @@ class FormPopup {
     return input;
   }
 
+  private cleanText(text: string): string {
+    // Remove excessive line breaks and empty lines, keeping only single line breaks
+    return text
+      // Replace multiple consecutive line breaks with single line break
+      .replace(/\n{2,}/g, '\n')
+      // Replace multiple consecutive spaces with single space
+      .replace(/ {2,}/g, ' ')
+      // Trim whitespace from start and end
+      .trim();
+  }
+
   private createNoteInputComponent(): HTMLElement {
     const container = document.createElement('div');
     container.id = 'mainInput';
@@ -800,7 +811,6 @@ class FormPopup {
       // Focus on textarea
       commentTextarea.focus();
     });
-    
     container.appendChild(tagsSection);
     container.appendChild(addCommentButton);
     container.appendChild(commentSection);
@@ -849,7 +859,7 @@ class FormPopup {
 
   private collectFormData(): any {
     const data: any = {
-      selectedText: this.selectedText,
+      selectedText: this.cleanText(this.selectedText),
       actionType: this.actionType,
       timestamp: new Date().toISOString(),
       sourceUrl: window.location.href
