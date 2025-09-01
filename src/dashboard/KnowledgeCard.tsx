@@ -53,12 +53,6 @@ const KnowledgeCard: React.FC<KnowledgeCardProps> = ({ selection, userStats }) =
   const cardRef = useRef<HTMLDivElement>(null);
   const [selectedGradient, setSelectedGradient] = React.useState<GradientOption>(gradientOptions[0]);
 
-  const truncateText = (text: string, maxLength: number = 200) => {
-    // For preview, we can truncate a bit, but for canvas we'll handle wrapping
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength).trim() + '...';
-  };
-
   const getSourceDomain = (url: string) => {
     try {
       return new URL(url).hostname.replace('www.', '');
@@ -241,43 +235,44 @@ const KnowledgeCard: React.FC<KnowledgeCardProps> = ({ selection, userStats }) =
         lines = calculateLines(fontSize);
       }
 
-      // Draw quote marks and text with soft shadows
+            // Draw quote marks and text with soft shadows
       ctx.save();
       ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
       ctx.shadowBlur = 2;
       ctx.shadowOffsetY = 1;
-      
-      // Opening quote
-      ctx.font = `bold ${Math.max(36, fontSize + 8)}px serif`;
-      ctx.fillStyle = '#64748b';
-      ctx.fillText('"', cardX + 40, cardY + 120);
 
-      // Main text lines with dynamic font
+      // Calculate the width of the longest line to center the text block
+      ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+      let maxLineWidth = 0;
+      lines.forEach(line => {
+        if (line !== '') {
+          const lineWidth = ctx.measureText(line).width;
+          maxLineWidth = Math.max(maxLineWidth, lineWidth);
+        }
+      });
+      
+      // Calculate starting positions to center the text block
+      const textBlockHeight = lines.length * lineHeight;
+      const availableHeight = cardHeight - 200; // Space between header and metadata
+      const textStartY = cardY + 120 + (availableHeight - textBlockHeight) / 2;
+      const centerX = cardX + cardWidth / 2; // Center X position
+      const textBlockStartX = centerX - maxLineWidth / 2; // Left edge of the centered text block
+
+      // Draw main text lines - LEFT ALIGNED within the centered block
       ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
       ctx.fillStyle = '#334155';
-      
-      // Calculate starting Y position to center the text vertically
-      const textBlockHeight = lines.length * lineHeight;
-      const textStartY = cardY + 140;
+      ctx.textAlign = 'left'; // Keep text left-aligned
       
       lines.forEach((line, index) => {
         if (line !== '') {
-          ctx.fillText(line, cardX + 80, textStartY + (index * lineHeight));
+          ctx.fillText(line, textBlockStartX, textStartY + (index * lineHeight));
         }
       });
-
-      // Closing quote - position it after the last non-empty line
-      ctx.font = `bold ${Math.max(36, fontSize + 8)}px serif`;
-      ctx.fillStyle = '#64748b';
-      const lastNonEmptyLine = lines.filter(line => line !== '').pop() || '';
-      const lastNonEmptyIndex = lines.lastIndexOf(lastNonEmptyLine);
-      const lastLineWidth = ctx.measureText(lastNonEmptyLine).width;
-      ctx.fillText('"', cardX + 80 + lastLineWidth + 10, textStartY + (lastNonEmptyIndex * lineHeight));
       
       ctx.restore();
 
-      // Adjust metadata position based on text length
-      const metaY = Math.max(cardY + 320, textStartY + textBlockHeight + 40);
+      // Position metadata at the bottom of the card
+      const metaY = cardY + cardHeight - 120; // Fixed position from bottom
       ctx.fillStyle = '#64748b';
       ctx.font = '20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
       
@@ -302,13 +297,15 @@ const KnowledgeCard: React.FC<KnowledgeCardProps> = ({ selection, userStats }) =
         ctx.fillText(`📊 Selection #${userStats.totalSelections} • Today: ${userStats.todayCount}`, cardX + 40, metaY + 70);
       }
 
-      // Branding with gradient
+      // Branding with gradient - align with bottom and same line as stats
       const brandGradient = ctx.createLinearGradient(0, 0, 300, 0);
       brandGradient.addColorStop(0, '#6366f1');
       brandGradient.addColorStop(1, '#8b5cf6');
       ctx.fillStyle = brandGradient;
-      ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText('✨ Saved with SelectCare', cardX + cardWidth - 300, cardY + cardHeight - 40);
+      ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('✨ Saved with SelectCare', cardX + cardWidth - 40, metaY + 70);
+      ctx.textAlign = 'left'; // Reset alignment
 
       return canvas.toDataURL('image/png', 1.0); // Maximum quality
     } catch (error) {
@@ -318,29 +315,28 @@ const KnowledgeCard: React.FC<KnowledgeCardProps> = ({ selection, userStats }) =
   };
 
   const shareToTwitter = async () => {
+    // Generate the card image first
     const imageData = await generateCardImage();
     
-    // Create shareable text
-    const truncatedText = truncateText(selection.text, 100);
-    const source = getSourceDomain(selection.context.sourceUrl);
-    const tags = selection.tags
-      .filter(tag => !tag.startsWith('fn_'))
-      .slice(0, 2)
-      .map(tag => `#${tag.replace(/\s+/g, '')}`)
-      .join(' ');
-
-    const shareText = `💡 Just discovered something interesting!\n\n"${truncatedText}"\n\n📍 From: ${source}\n${tags}\n\n#Learning #Knowledge #SelectCare`;
+    // Use comment as tweet text if available, otherwise fall back to a default message
+    let tweetText = '';
     
-    // For now, open Twitter with text (image sharing would require additional setup)
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
-    window.open(twitterUrl, '_blank');
-
-    // TODO: In a full implementation, you'd upload the image to a service
-    // and include it in the tweet
-    if (imageData) {
-      console.log('Generated card image:', imageData);
-      // Could save to clipboard or download for manual sharing
+    if (selection.comments && selection.comments.length > 0) {
+      // Use the first comment as tweet text
+      tweetText = selection.comments[0];
     }
+    // Download the image for manual upload
+    if (imageData) {
+      // Download the card image
+      const link = document.createElement('a');
+      link.download = `share-card-${Date.now()}.png`;
+      link.href = imageData;
+      link.click();
+    }
+    
+    // Open Twitter with the comment text
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+    window.open(twitterUrl, '_blank');
   };
 
   const downloadCard = async () => {
