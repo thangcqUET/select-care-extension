@@ -174,11 +174,11 @@ const KnowledgeCard: React.FC<KnowledgeCardProps> = ({ selection, userStats }) =
       ctx.textBaseline = 'top';
       
       const emoji = getActionEmoji(selection.type);
-      const headerText = `${emoji} Learning Discovery`;
+      const headerText = `${emoji} My Selection Today`;
       ctx.fillText(headerText, cardX + 40, cardY + 40);
 
       // Main content text with dynamic sizing - NO TRUNCATION
-      const fullText = selection.text; // Use full text, no truncation
+      const fullText = `"${selection.text}"`; // Use full text, no truncation
       ctx.fillStyle = '#334155';
       
       // Start with optimal font size
@@ -253,8 +253,8 @@ const KnowledgeCard: React.FC<KnowledgeCardProps> = ({ selection, userStats }) =
       
       // Calculate starting positions to center the text block
       const textBlockHeight = lines.length * lineHeight;
-      const availableHeight = cardHeight - 200; // Space between header and metadata
-      const textStartY = cardY + 120 + (availableHeight - textBlockHeight) / 2;
+      const availableHeight = cardHeight - 180; // Reduced from 200 to 180 for more space
+      const textStartY = cardY + 100 + (availableHeight - textBlockHeight) / 2; // Reduced from 120 to 100
       const centerX = cardX + cardWidth / 2; // Center X position
       const textBlockStartX = centerX - maxLineWidth / 2; // Left edge of the centered text block
 
