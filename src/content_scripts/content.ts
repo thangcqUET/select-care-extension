@@ -1,11 +1,17 @@
 import { convertToSelection } from './data_mapper';
 import { throttle } from './utils';
 import { TagInput } from './components/TagInput';
+import { CommentInput } from './components/CommentInput';
 
 
 let selectedText : string | undefined;
 let selectionPosition: DOMRect | undefined;
 let savedSelectedText: string | undefined;
+
+// Side panel toggle removed: feature disabled until sidePanel close API is available.
+
+const SELECTION_CHANGE_DELAY = 10;
+const MOUSEUP_DELAY = SELECTION_CHANGE_DELAY+1;
 
 // Function to check if user is currently typing in an input field
 function isUserTyping(): boolean {
@@ -53,7 +59,7 @@ document.addEventListener('selectionchange', throttle(() => {
   //   // show a popup beside the mouse with a emoji and the selected text
   //   console.log(`${selectedText}`);
   // }
-}, 10));
+}, SELECTION_CHANGE_DELAY));
 
 //listen mouse down event
 // document.addEventListener('mousedown', (event: MouseEvent) => {
@@ -61,8 +67,8 @@ document.addEventListener('selectionchange', throttle(() => {
 // });
 
 //listen mouse up event
-document.addEventListener('mouseup', () => {
-  // console.log('Mouse up at:', event.clientX, event.clientY);
+document.addEventListener('mouseup', (event: MouseEvent) => {
+  console.log('Mouse up at:', event.clientX, event.clientY);
   
   // Don't show popup if user is typing in an input field
   if (isUserTyping()) {
@@ -71,11 +77,14 @@ document.addEventListener('mouseup', () => {
   }
   
   // Only show popup if there's actual trimmed text content
-  if (selectedText && selectedText.length > 0) {
-    showPopup();
-    savedSelectedText = selectedText;
+  setTimeout(() => {
+
+    if (selectedText && selectedText.length > 0) {
+      showPopup();
+      savedSelectedText = selectedText;
+    }
+  }, MOUSEUP_DELAY);
     // selectedText = undefined;
-  }
 });
 
 
@@ -211,11 +220,13 @@ class SelectPopup {
 
     // Add hover event listeners to the popup
     popup.addEventListener('mouseenter', () => {
+      console.log("mouse enter");
       this.isHovering = true;
       this.clearHideTimeout();
     });
 
     popup.addEventListener('mouseleave', () => {
+      console.log("mouse leave");
       this.isHovering = false;
       this.scheduleHide();
     });
@@ -223,7 +234,7 @@ class SelectPopup {
     const icons = [
       { emoji: '🌏', action: 'learn', title: 'Learn it' },
       { emoji: '📝', action: 'note', title: 'Save as Note' },
-      { emoji: '🤖', action: 'ai', title: 'Ask AI' }
+      { emoji: '🤖', action: 'chat', title: 'Ask AI' }
     ];
 
     icons.forEach(icon => {
@@ -255,7 +266,7 @@ class SelectPopup {
       case 'note':
         this.handleNoteAction(textToProcess);
         break;
-      case 'ai':
+      case 'chat':
         this.handleAiAction(textToProcess);
         break;
     }
@@ -280,7 +291,7 @@ class SelectPopup {
 
   private handleAiAction(text: string) {
     // console.log('🤖 Opening AI form for:', text);
-    const formPopup = new FormPopup('ai', text);
+    const formPopup = new FormPopup('chat', text);
     if (selectionPosition) {
       formPopup.show(selectionPosition);
     }
@@ -365,6 +376,7 @@ class FormPopup {
   private actionType: string;
   private selectedText: string;
   private tagInput?: TagInput; // Tag input component instance
+  private commentInput?: CommentInput; // Comment input component instance
 
   constructor(actionType: string, text: string) {
     this.actionType = actionType;
@@ -505,7 +517,32 @@ class FormPopup {
         word-break: break-word;
         backdrop-filter: blur(5px);
       }
+
+      .tags-section {
+        padding: 12px;
+        background: rgba(54, 162, 235, 0.08);
+        border: 1px solid rgba(54, 162, 235, 0.2);
+        border-radius: 8px;
+        backdrop-filter: blur(5px);
+        position: relative;
+      }
+
+      .tags-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, rgba(54, 162, 235, 0.3), rgba(54, 162, 235, 0.1));
+        border-radius: 8px 8px 0 0;
+      }
+
+      
+
+    </style>
     `;
+
     this.shadowRoot.appendChild(style);
   }
 
@@ -531,7 +568,7 @@ class FormPopup {
         icon.textContent = '📌';
         title.textContent = 'Save Note';
         break;
-      case 'ai':
+      case 'chat':
         icon.textContent = '🤖';
         title.textContent = 'Ask AI';
         break;
@@ -583,6 +620,17 @@ class FormPopup {
       }
       console.log("User is typing, checking for shortcuts...", event.key);
       
+      // Check if the user is typing in comment input or tag input
+      let typingIn = 0b00;
+      const commentCode = 0b01;
+      const tagCode = 0b10;
+      if (this.commentInput && this.commentInput.isFocused()) {
+        typingIn |= commentCode;
+      }
+      if (this.tagInput && this.tagInput.isFocused()) {
+        typingIn |= tagCode;
+      }
+      console.log("User is typing in:", typingIn === (commentCode)?"comment":"tag");
       // Check if this is a single shortcut
       const isSingleKeyShortcut = event.key.length === 1 && 
                                 !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
@@ -592,20 +640,23 @@ class FormPopup {
         event.preventDefault();
         event.stopPropagation();
         
+        console.log("event.key");
+        console.log(event.key);
         // For tag input (note action), send custom event to TagInput component
-        if (this.actionType === 'note' && this.tagInput) {
+        if (this.actionType === 'note' && this.tagInput && (typingIn & tagCode) === tagCode) {
           this.tagInput.dispatchKeyEvent(event.key, {
             ctrlKey: event.ctrlKey,
             metaKey: event.metaKey,
             altKey: event.altKey,
             shiftKey: event.shiftKey
           });
-        } else {
-          // For regular input fields, add text directly
-          const inputField = this.shadowRoot.getElementById('mainInput') as HTMLInputElement;
-          if (inputField) {
-            inputField.value += event.key;
-          }
+        } else if (this.actionType === 'note' && this.commentInput && (typingIn & commentCode) === commentCode) {
+          this.commentInput.dispatchKeyEvent(event.key, {
+            ctrlKey: event.ctrlKey,
+            metaKey: event.metaKey,
+            altKey: event.altKey,
+            shiftKey: event.shiftKey
+          });
         }
       }
     }, true); // Use capture phase to catch events early
@@ -615,7 +666,7 @@ class FormPopup {
 
   private createSimpleInput(): HTMLElement {
     if (this.actionType === 'note') {
-      return this.createTagInputComponent();
+      return this.createNoteInputComponent();
     }
 
     const input = document.createElement('input');
@@ -627,7 +678,7 @@ class FormPopup {
         input.placeholder = 'Target language (e.g., English, Spanish)';
         input.value = 'English';
         break;
-      case 'ai':
+      case 'chat':
         input.placeholder = 'What would you like to ask?';
         break;
     }
@@ -635,7 +686,62 @@ class FormPopup {
     return input;
   }
 
-  private createTagInputComponent(): HTMLElement {
+  private cleanText(text: string): string {
+    // Remove excessive line breaks and empty lines, keeping only single line breaks
+    return text
+      // Replace multiple consecutive line breaks with single line break
+      .replace(/\n{2,}/g, '\n')
+      // Replace multiple consecutive spaces with single space
+      .replace(/ {2,}/g, ' ')
+      // Trim whitespace from start and end
+      .trim();
+  }
+
+  private createNoteInputComponent(): HTMLElement {
+    const container = document.createElement('div');
+    container.id = 'mainInput';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '12px';
+    
+    // Create tags section
+    const tagsSection = this.createTagsSection();
+    
+    // Create comment section
+    const commentSection = this.createCommentSection();
+    
+    container.appendChild(tagsSection);
+    container.appendChild(commentSection);
+    
+    return container;
+  }
+
+  private createTagsSection(): HTMLElement {
+    const tagsSection = document.createElement('div');
+    tagsSection.className = 'tags-section';
+    tagsSection.style.marginBottom = '0'; // Remove margin since we use gap in container
+    
+    // Add section header
+    const sectionHeader = document.createElement('div');
+    sectionHeader.style.display = 'flex';
+    sectionHeader.style.alignItems = 'center';
+    sectionHeader.style.gap = '6px';
+    sectionHeader.style.marginBottom = '8px';
+    
+    const sectionIcon = document.createElement('span');
+    sectionIcon.textContent = '🏷️';
+    sectionIcon.style.fontSize = '14px';
+    
+    const tagsLabel = document.createElement('label');
+    tagsLabel.textContent = 'Tags';
+    tagsLabel.style.fontSize = '12px';
+    tagsLabel.style.fontWeight = '600';
+    tagsLabel.style.color = '#000';
+    tagsLabel.style.margin = '0';
+    
+    sectionHeader.appendChild(sectionIcon);
+    sectionHeader.appendChild(tagsLabel);
+    
     this.tagInput = new TagInput({
       placeholder: 'Type tag name and press Enter...',
       maxTags: 10,
@@ -655,14 +761,60 @@ class FormPopup {
       },
       onInputBlur: () => {
         console.log('TagInput lost focus');
+      },
+      onEnterEmpty: () => {
+        // Check if there's comment text or tags before auto-saving
+        const commentText = this.commentInput?.getValue()?.trim() || '';
+        const tags = this.tagInput?.getTags() || [];
+        
+        if (tags.length > 0 || commentText.length > 0) {
+          console.log('Enter pressed with empty tag input - auto-saving');
+          this.handleSave();
+        }
       }
     });
+    
+    tagsSection.appendChild(sectionHeader);
+    tagsSection.appendChild(this.tagInput.getElement());
+    
+    return tagsSection;
+  }
 
-    const container = document.createElement('div');
-    container.id = 'mainInput';
-    container.appendChild(this.tagInput.getElement());
-
-    return container;
+  private createCommentSection(): HTMLElement {
+    const commentSection = document.createElement('div');
+    commentSection.className = 'comment-section';
+    
+    // Add section header
+    const sectionHeader = document.createElement('div');
+    sectionHeader.style.display = 'flex';
+    sectionHeader.style.alignItems = 'center';
+    sectionHeader.style.gap = '6px';
+    sectionHeader.style.marginBottom = '8px';
+    
+    // Create comment input component
+    this.commentInput = new CommentInput({
+      placeholder: 'Add your notes or comments here...',
+      showButton: true,
+      buttonText: '+ Add Comment',
+      onCommentChange: (value) => {
+        console.log('Comment value changed:', value);
+      },
+      onCommentFocus: () => {
+        console.log('Comment focused');
+      },
+      onCommentBlur: () => {
+        console.log('Comment blurred');
+      },
+      onSave: () => {
+        console.log('Ctrl+Enter pressed in comment - auto-saving');
+        this.handleSave();
+      }
+    });
+    
+    commentSection.appendChild(sectionHeader);
+    commentSection.appendChild(this.commentInput.getElement());
+    
+    return commentSection;
   }
 
   private handleOutsideClick = (event: Event) => {
@@ -677,7 +829,7 @@ class FormPopup {
         return 'Learn it';
       case 'note':
         return 'Save Note';
-      case 'ai':
+      case 'chat':
         return 'Ask AI';
       default:
         return 'Save';
@@ -696,7 +848,7 @@ class FormPopup {
       case 'note':
         this.saveNote(formData);
         break;
-      case 'ai':
+      case 'chat':
         this.askAI(formData);
         break;
     }
@@ -706,7 +858,7 @@ class FormPopup {
 
   private collectFormData(): any {
     const data: any = {
-      selectedText: this.selectedText,
+      selectedText: this.cleanText(this.selectedText),
       actionType: this.actionType,
       timestamp: new Date().toISOString(),
       sourceUrl: window.location.href
@@ -726,6 +878,9 @@ class FormPopup {
         data.tags = ['fn_note', 'general'];
         data.tagCount = 0;
       }
+      
+      // Get comment text from CommentInput component
+      data.comment = this.commentInput?.getValue()?.trim() || '';
     } else {
       // For other inputs, get from main input
       const mainInput = this.shadowRoot.getElementById('mainInput') as HTMLInputElement;
@@ -743,7 +898,7 @@ class FormPopup {
       case 'note':
         // Tags already handled above with fn_note
         break;
-      case 'ai':
+      case 'chat':
         data.question = inputValue || 'Explain this text';
         // Add hidden function tag for AI
         data.tags = ['fn_ai'];
@@ -785,7 +940,7 @@ class FormPopup {
     // TODO: Implement AI API call
     let chatSelection = convertToSelection(data);
     const response = await chrome.runtime.sendMessage({
-      action: 'ai',
+      action: 'chat',
       data: chatSelection
     });
     console.log('Response from background:', response);
@@ -809,7 +964,7 @@ class FormPopup {
 
     this.isVisible = true;
 
-    // Focus the input
+    // Focus the appropriate input
     setTimeout(() => {
       if (this.actionType === 'note' && this.tagInput) {
         this.tagInput.focus();
@@ -833,10 +988,14 @@ class FormPopup {
         if (this.container.parentNode) {
           document.body.removeChild(this.container);
         }
-        // Clean up TagInput component
+        // Clean up components
         if (this.tagInput) {
           this.tagInput.destroy();
           this.tagInput = undefined;
+        }
+        if (this.commentInput) {
+          this.commentInput.destroy();
+          this.commentInput = undefined;
         }
       }, 300);
     }
@@ -851,6 +1010,7 @@ let popupInstance: SelectPopup | null = null;
 
 // function to show a popup with 3 clickable icons
 function showPopup() {
+  console.log("show popup!!");
   // Double-check that we have valid selection position and text
   if (!selectionPosition || !selectedText || selectedText.trim().length === 0) {
     return;

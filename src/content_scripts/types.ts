@@ -8,12 +8,13 @@ export type BaseSelection = {
   text: string;
   context: Record<string, any>;
   tags: string[];
+  type: SelectionType;
+  comments?: string[];
   metadata: Record<string, any>;
 }
 
 // Define specific data types for each selection type
 export interface LearnSpecificData extends BaseSelection {
-  type: 'learn';
   image?: string;
   pieces: {
     language: string;
@@ -22,11 +23,9 @@ export interface LearnSpecificData extends BaseSelection {
 }
 
 export interface NoteSpecificData extends BaseSelection {
-  type: 'note';
 }
 
 export interface ChatSpecificData extends BaseSelection {
-  type: 'chat';
   chat_id: string;
 }
 

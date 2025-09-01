@@ -31,11 +31,13 @@ export function convertToSelection(data: any): Omit<BasedSelection, "selection_i
     selectedText,
     sourceUrl,
     timestamp,
-    tags
+    tags,
+    comment
   } = data;
   console.log("Converting to selection:");
   console.log(data);
-  return createSelection({
+  
+  const selection = createSelection({
     type: actionType,
     text: selectedText,
     context: {
@@ -47,4 +49,11 @@ export function convertToSelection(data: any): Omit<BasedSelection, "selection_i
       timestamp
     }
   });
+  
+  // Add comments if present
+  if (comment && comment.trim()) {
+    (selection as any).comments = [comment.trim()];
+  }
+  
+  return selection;
 }

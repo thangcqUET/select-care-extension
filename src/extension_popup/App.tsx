@@ -23,6 +23,21 @@ function App() {
     }
   };
 
+  const openOptions = async () => {
+    try {
+      if (chrome.runtime.openOptionsPage) {
+        chrome.runtime.openOptionsPage();
+      } else {
+        chrome.tabs.create({ url: chrome.runtime.getURL('option_page/option.html') });
+      }
+      window.close();
+    } catch (error) {
+      console.error('Failed to open options page:', error);
+      chrome.tabs.create({ url: chrome.runtime.getURL('option_page/option.html') });
+      window.close();
+    }
+  };
+
   return (
     <div className="w-80 p-6 bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
@@ -79,6 +94,15 @@ function App() {
       >
         <span>📊</span>
         <span>Open Sidebar</span>
+      </button>
+
+      {/* Settings link */}
+      <button
+        onClick={openOptions}
+        className="w-full mt-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+      >
+        <span>⚙️</span>
+        <span>Settings</span>
       </button>
 
       {/* Footer */}

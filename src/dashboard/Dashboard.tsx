@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BasedSelection } from '../content_scripts/types';
+import KnowledgeCard from './KnowledgeCard';
 
 const Dashboard: React.FC = () => {
   const [selections, setSelections] = useState<BasedSelection[]>([]);
@@ -7,6 +8,8 @@ const Dashboard: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedActionType, setSelectedActionType] = useState<string>('all');
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   // Load selections from IndexedDB instead of mock data
   useEffect(() => {
@@ -31,6 +34,21 @@ const Dashboard: React.FC = () => {
     };
 
     loadSelections();
+
+    // Listen for data update messages
+    const handleMessage = (message: any) => {
+      if (message.action === 'dataUpdated') {
+        console.log('Data updated, refreshing dashboard...');
+        loadSelections();
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleMessage);
+
+    // Cleanup listener on unmount
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage);
+    };
   }, []);
 
   // Get all unique tags (excluding function tags)
@@ -121,7 +139,7 @@ const Dashboard: React.FC = () => {
     switch (actionType) {
       case 'learn': return '🌐';
       case 'note': return '📝';
-      case 'ai': return '🤖';
+      case 'chat': return '🤖';
       default: return '📄';
     }
   };
@@ -130,11 +148,35 @@ const Dashboard: React.FC = () => {
     switch (actionType) {
       case 'learn': return 'bg-blue-100 text-blue-800';
       case 'note': return 'bg-green-100 text-green-800';
-      case 'ai': return 'bg-purple-100 text-purple-800';
+      case 'chat': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
+  const getUserStats = () => {
+    const today = new Date().toDateString();
+    const todaySelections = selections.filter(s => 
+      new Date(s.metadata.timestamp).toDateString() === today
+    );
+    
+    return {
+      totalSelections: selections.length,
+      todayCount: todaySelections.length
+    };
+  };
+
+  function TextWithLineBreaks({ text }: { text: string }) {
+    // Split the text by newline characters and map each segment to a React element
+    const lines = text.split('\n').map((line, index) => (
+      <React.Fragment key={index}>
+        {line}
+        {/* Add a <br /> tag after each line except the last one */}
+        {index < text.split('\n').length - 1 && <br />}
+      </React.Fragment>
+    ));
+
+    return <div>{lines}</div>;
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header - Compact for sidebar */}
@@ -175,6 +217,27 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
 
+          {/* Stats Dashboard */}
+          <div className="mb-4 p-3 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg border">
+            <h2 className="text-sm font-bold text-gray-900 mb-2">📊 Your Learning Stats</h2>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="text-center">
+                <div className="text-lg font-bold text-indigo-600">{getUserStats().totalSelections}</div>
+                <div className="text-gray-600">Total</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-green-600">{getUserStats().todayCount}</div>
+                <div className="text-gray-600">Today</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-purple-600">
+                  {selections.filter(s => s.type === 'note').length}
+                </div>
+                <div className="text-gray-600">Notes</div>
+              </div>
+            </div>
+          </div>
+
           {/* Search */}
           <div className="mb-3">
             <input
@@ -196,7 +259,7 @@ const Dashboard: React.FC = () => {
               <option value="all">All Types</option>
               <option value="learn">🌐 Learn</option>
               <option value="note">📝 Notes</option>
-              <option value="ai">🤖 AI</option>
+              <option value="chat">🤖 AI</option>
             </select>
           </div>
 
@@ -262,7 +325,7 @@ const Dashboard: React.FC = () => {
                 {/* Selected Text */}
                 <div className="mb-2">
                   <p className="text-sm text-gray-900 leading-relaxed">
-                    "{selection.text}"
+                    <TextWithLineBreaks text={selection.text} />
                   </p>
                 </div>
 
@@ -293,6 +356,59 @@ const Dashboard: React.FC = () => {
                         </span>
                       ))}
                   </div>
+                </div>
+
+                {/* Comments */}
+                {selection.comments && selection.comments.length > 0 && (
+                  <div className="mb-2">
+                    <button
+                      onClick={() => {
+                        const newExpanded = new Set(expandedComments);
+                        if (newExpanded.has(selection.selection_id)) {
+                          newExpanded.delete(selection.selection_id);
+                        } else {
+                          newExpanded.add(selection.selection_id);
+                        }
+                        setExpandedComments(newExpanded);
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium mb-1 cursor-pointer bg-transparent border-none p-0"
+                    >
+                      {expandedComments.has(selection.selection_id) ? 'Hide Comments' : 'Show Comments'}
+                    </button>
+                    {expandedComments.has(selection.selection_id) && (
+                      <div className="mt-1">
+                        {selection.comments.map((comment, index) => (
+                          <div key={index} className="text-xs text-gray-700 bg-gray-50 rounded px-2 py-1 mb-1">
+                            <TextWithLineBreaks text={comment} />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Share Card Section */}
+                <div className="mb-2">
+                  <button
+                    onClick={() => {
+                      const newExpanded = new Set(expandedCards);
+                      if (newExpanded.has(selection.selection_id)) {
+                        newExpanded.delete(selection.selection_id);
+                      } else {
+                        newExpanded.add(selection.selection_id);
+                      }
+                      setExpandedCards(newExpanded);
+                    }}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer bg-transparent border-none p-0"
+                  >
+                    {expandedCards.has(selection.selection_id) ? 'Hide Card' : '✨ Generate Share Card'}
+                  </button>
+                  {expandedCards.has(selection.selection_id) && (
+                    <KnowledgeCard 
+                      selection={selection} 
+                      userStats={getUserStats()}
+                    />
+                  )}
                 </div>
 
                 {/* Source URL - Truncated for sidebar */}

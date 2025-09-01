@@ -14,6 +14,7 @@ export interface TagInputOptions {
   onInputChange?: (value: string) => void;
   onInputFocus?: () => void;
   onInputBlur?: () => void;
+  onEnterEmpty?: () => void; // Called when Enter is pressed with empty input but tags exist
 }
 
 export class TagInput {
@@ -269,6 +270,9 @@ export class TagInput {
         this.addTag(tagText);
         input.value = '';
         this.options.onInputChange?.(''); // Notify input cleared
+      } else if (this.tags.length > 0) {
+        // If input is empty but we have tags, trigger the onEnterEmpty callback
+        this.options.onEnterEmpty?.();
       }
       return;
     }
@@ -297,7 +301,7 @@ export class TagInput {
     // For custom events, we need to manually add the character to the input
     if (!(keyData instanceof KeyboardEvent) && key.length === 1 && !ctrlKey && !metaKey && !altKey) {
       input.value += key;
-      this.options.onInputChange?.(input.value);
+    //   this.options.onInputChange?.(input.value);
     }
   }
 
@@ -511,6 +515,10 @@ export class TagInput {
 
   public focus() {
     this.textInput.focus();
+  }
+
+  public isFocused(): boolean {
+    return this.shadowRoot.activeElement === this.textInput;
   }
 
   public setPlaceholder(placeholder: string) {

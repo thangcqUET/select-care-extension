@@ -1,18 +1,4 @@
-// IndexedDB utility for storing selections
-export interface Selection {
-  id: string;
-  text: string;
-  context: {
-    sourceUrl: string;
-    targetLanguage?: string;
-    question?: string;
-  };
-  tags: string[];
-  type: 'learn' | 'note' | 'ai';
-  metadata: {
-    timestamp: string;
-  };
-}
+import { BasedSelection } from "./types";
 
 const DB_NAME = 'SelectCareDB';
 const DB_VERSION = 1;
@@ -41,8 +27,7 @@ class SelectionDatabase {
         
         // Create object store for selections
         if (!db.objectStoreNames.contains(STORE_NAME)) {
-          const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-          
+          const store = db.createObjectStore(STORE_NAME, { keyPath: 'selection_id' });
           // Create indexes for efficient querying
           store.createIndex('type', 'type', { unique: false });
           store.createIndex('timestamp', 'metadata.timestamp', { unique: false });
@@ -55,7 +40,7 @@ class SelectionDatabase {
     });
   }
 
-  async saveSelection(selection: Selection): Promise<void> {
+  async saveSelection(selection: BasedSelection): Promise<void> {
     if (!this.db) {
       await this.init();
     }
@@ -72,7 +57,7 @@ class SelectionDatabase {
       const request = store.put(selection);
 
       request.onsuccess = () => {
-        console.log('Selection saved to IndexedDB:', selection.id);
+        console.log('Selection saved to IndexedDB:', selection.selection_id);
         resolve();
       };
 
@@ -83,7 +68,7 @@ class SelectionDatabase {
     });
   }
 
-  async getSelection(id: string): Promise<Selection | null> {
+  async getSelection(selection_id: string): Promise<BasedSelection | null> {
     if (!this.db) {
       await this.init();
     }
@@ -96,7 +81,7 @@ class SelectionDatabase {
 
       const transaction = this.db.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.get(id);
+      const request = store.get(selection_id);
 
       request.onsuccess = () => {
         resolve(request.result || null);
@@ -109,7 +94,7 @@ class SelectionDatabase {
     });
   }
 
-  async getAllSelections(): Promise<Selection[]> {
+  async getAllSelections(): Promise<BasedSelection[]> {
     if (!this.db) {
       await this.init();
     }
@@ -145,7 +130,7 @@ class SelectionDatabase {
     });
   }
 
-  async deleteSelection(id: string): Promise<void> {
+  async deleteSelection(selection_id: string): Promise<void> {
     if (!this.db) {
       await this.init();
     }
@@ -158,10 +143,10 @@ class SelectionDatabase {
 
       const transaction = this.db.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.delete(id);
+      const request = store.delete(selection_id);
 
       request.onsuccess = () => {
-        console.log('Selection deleted from IndexedDB:', id);
+        console.log('Selection deleted from IndexedDB:', selection_id);
         resolve();
       };
 
@@ -172,7 +157,7 @@ class SelectionDatabase {
     });
   }
 
-  async getSelectionsByActionType(actionType: string): Promise<Selection[]> {
+  async getSelectionsByActionType(actionType: string): Promise<BasedSelection[]> {
     if (!this.db) {
       await this.init();
     }
@@ -202,16 +187,14 @@ class SelectionDatabase {
     });
   }
 
-  async searchSelections(query: string): Promise<Selection[]> {
+  async searchSelections(query: string): Promise<BasedSelection[]> {
     const allSelections = await this.getAllSelections();
     
     const lowerQuery = query.toLowerCase();
     return allSelections.filter(selection => 
       selection.text.toLowerCase().includes(lowerQuery) ||
       selection.context.sourceUrl.toLowerCase().includes(lowerQuery) ||
-      selection.tags.some(tag => tag.toLowerCase().includes(lowerQuery)) ||
-      (selection.context.question && selection.context.question.toLowerCase().includes(lowerQuery)) ||
-      (selection.context.targetLanguage && selection.context.targetLanguage.toLowerCase().includes(lowerQuery))
+      selection.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
     );
   }
 
