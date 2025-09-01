@@ -31,6 +31,21 @@ const Dashboard: React.FC = () => {
     };
 
     loadSelections();
+
+    // Listen for data update messages
+    const handleMessage = (message: any) => {
+      if (message.action === 'dataUpdated') {
+        console.log('Data updated, refreshing dashboard...');
+        loadSelections();
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleMessage);
+
+    // Cleanup listener on unmount
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage);
+    };
   }, []);
 
   // Get all unique tags (excluding function tags)

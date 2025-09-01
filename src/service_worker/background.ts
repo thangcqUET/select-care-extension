@@ -3,6 +3,14 @@ import { selectionDB } from "./database";
 // Background service worker for Chrome extension
 console.log('Select Care Extension background script loaded');
 
+// Function to broadcast data updates to all tabs/contexts
+function broadcastDataUpdate() {
+  console.log('Broadcasting data update to all contexts...');
+  chrome.runtime.sendMessage({ action: 'dataUpdated' }).catch(() => {
+    // Ignore errors if no listeners are available
+  });
+}
+
 // Initialize database when extension loads
 selectionDB.init().catch(error => {
   console.error('Failed to initialize IndexedDB:', error);
@@ -47,6 +55,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     selectionDB.saveSelection(selection).then(() => {
       console.log('Selection saved to IndexedDB successfully');
       sendResponse({ success: true, message: 'Selection saved successfully' });
+      // Broadcast update to refresh dashboard
+      broadcastDataUpdate();
     }).catch(error => {
       console.error('Failed to save selection to IndexedDB:', error);
       sendResponse({ success: false, error: error.message });
@@ -72,6 +82,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     selectionDB.deleteSelection(message.data.id).then(() => {
       console.log('Selection deleted from IndexedDB');
       sendResponse({ success: true, message: 'Selection deleted successfully' });
+      // Broadcast update to refresh dashboard
+      broadcastDataUpdate();
     }).catch(error => {
       console.error('Failed to delete selection from IndexedDB:', error);
       sendResponse({ success: false, error: error.message });

@@ -665,6 +665,10 @@ class FormPopup {
       },
       onInputBlur: () => {
         console.log('TagInput lost focus');
+      },
+      onEnterEmpty: () => {
+        console.log('Enter pressed with empty input but tags exist - auto-saving');
+        this.handleSave();
       }
     });
 

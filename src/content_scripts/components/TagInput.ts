@@ -14,6 +14,7 @@ export interface TagInputOptions {
   onInputChange?: (value: string) => void;
   onInputFocus?: () => void;
   onInputBlur?: () => void;
+  onEnterEmpty?: () => void; // Called when Enter is pressed with empty input but tags exist
 }
 
 export class TagInput {
@@ -269,6 +270,9 @@ export class TagInput {
         this.addTag(tagText);
         input.value = '';
         this.options.onInputChange?.(''); // Notify input cleared
+      } else if (this.tags.length > 0) {
+        // If input is empty but we have tags, trigger the onEnterEmpty callback
+        this.options.onEnterEmpty?.();
       }
       return;
     }
