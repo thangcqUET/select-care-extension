@@ -7,6 +7,7 @@ const Dashboard: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedActionType, setSelectedActionType] = useState<string>('all');
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
 
   // Load selections from IndexedDB instead of mock data
   useEffect(() => {
@@ -321,6 +322,35 @@ const Dashboard: React.FC = () => {
                       ))}
                   </div>
                 </div>
+
+                {/* Comments */}
+                {selection.comments && selection.comments.length > 0 && (
+                  <div className="mb-2">
+                    <button
+                      onClick={() => {
+                        const newExpanded = new Set(expandedComments);
+                        if (newExpanded.has(selection.selection_id)) {
+                          newExpanded.delete(selection.selection_id);
+                        } else {
+                          newExpanded.add(selection.selection_id);
+                        }
+                        setExpandedComments(newExpanded);
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium mb-1 cursor-pointer bg-transparent border-none p-0"
+                    >
+                      {expandedComments.has(selection.selection_id) ? 'Hide Comments' : 'Show Comments'}
+                    </button>
+                    {expandedComments.has(selection.selection_id) && (
+                      <div className="mt-1">
+                        {selection.comments.map((comment, index) => (
+                          <div key={index} className="text-xs text-gray-700 bg-gray-50 rounded px-2 py-1 mb-1">
+                            <TextWithLineBreaks text={comment} />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Source URL - Truncated for sidebar */}
                 <div className="text-xs text-gray-500">

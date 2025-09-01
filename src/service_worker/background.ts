@@ -46,6 +46,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       },
       tags: message.data.tags || [],
       type: message.action,
+      ...(message.data.comments && { comments: message.data.comments }), // Include comments if present
       metadata: {
         timestamp: new Date().toISOString()
       }
