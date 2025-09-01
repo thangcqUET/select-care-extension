@@ -1,6 +1,7 @@
 import { convertToSelection } from './data_mapper';
 import { throttle } from './utils';
 import { TagInput } from './components/TagInput';
+import { CommentInput } from './components/CommentInput';
 
 
 let selectedText : string | undefined;
@@ -375,6 +376,7 @@ class FormPopup {
   private actionType: string;
   private selectedText: string;
   private tagInput?: TagInput; // Tag input component instance
+  private commentInput?: CommentInput; // Comment input component instance
 
   constructor(actionType: string, text: string) {
     this.actionType = actionType;
@@ -498,25 +500,6 @@ class FormPopup {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
 
-      .btn-secondary {
-        padding: 4px 8px;
-        border: 1px solid rgba(59, 130, 246, 0.3);
-        border-radius: 6px;
-        background: rgba(59, 130, 246, 0.1);
-        color: #2563eb;
-        font-size: 12px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      }
-
-      .btn-secondary:hover {
-        background: rgba(59, 130, 246, 0.2);
-        border-color: rgba(59, 130, 246, 0.5);
-        transform: scale(1.02);
-      }
-
       .form-button:active {
         transform: scale(0.98);
       }
@@ -534,6 +517,28 @@ class FormPopup {
         word-break: break-word;
         backdrop-filter: blur(5px);
       }
+
+      .tags-section {
+        padding: 12px;
+        background: rgba(54, 162, 235, 0.08);
+        border: 1px solid rgba(54, 162, 235, 0.2);
+        border-radius: 8px;
+        backdrop-filter: blur(5px);
+        position: relative;
+      }
+
+      .tags-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, rgba(54, 162, 235, 0.3), rgba(54, 162, 235, 0.1));
+        border-radius: 8px 8px 0 0;
+      }
+
+      
 
     </style>
     `;
@@ -615,13 +620,17 @@ class FormPopup {
       }
       console.log("User is typing, checking for shortcuts...", event.key);
       
-      // Check if the user is typing in comment textarea
-      const commentTextarea = this.shadowRoot.getElementById('commentInput') as HTMLTextAreaElement;
-      if (commentTextarea && this.shadowRoot.activeElement === commentTextarea) {
-        console.log("User is typing in comment textarea, not forwarding to TagInput");
-        return; // Don't interfere with comment typing
+      // Check if the user is typing in comment input or tag input
+      let typingIn = 0b00;
+      const commentCode = 0b01;
+      const tagCode = 0b10;
+      if (this.commentInput && this.commentInput.isFocused()) {
+        typingIn |= commentCode;
       }
-      
+      if (this.tagInput && this.tagInput.isFocused()) {
+        typingIn |= tagCode;
+      }
+      console.log("User is typing in:", typingIn === (commentCode)?"comment":"tag");
       // Check if this is a single shortcut
       const isSingleKeyShortcut = event.key.length === 1 && 
                                 !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
@@ -631,20 +640,23 @@ class FormPopup {
         event.preventDefault();
         event.stopPropagation();
         
+        console.log("event.key");
+        console.log(event.key);
         // For tag input (note action), send custom event to TagInput component
-        if (this.actionType === 'note' && this.tagInput) {
+        if (this.actionType === 'note' && this.tagInput && (typingIn & tagCode) === tagCode) {
           this.tagInput.dispatchKeyEvent(event.key, {
             ctrlKey: event.ctrlKey,
             metaKey: event.metaKey,
             altKey: event.altKey,
             shiftKey: event.shiftKey
           });
-        } else {
-          // For regular input fields, add text directly
-          const inputField = this.shadowRoot.getElementById('mainInput') as HTMLInputElement;
-          if (inputField) {
-            inputField.value += event.key;
-          }
+        } else if (this.actionType === 'note' && this.commentInput && (typingIn & commentCode) === commentCode) {
+          this.commentInput.dispatchKeyEvent(event.key, {
+            ctrlKey: event.ctrlKey,
+            metaKey: event.metaKey,
+            altKey: event.altKey,
+            shiftKey: event.shiftKey
+          });
         }
       }
     }, true); // Use capture phase to catch events early
@@ -688,18 +700,47 @@ class FormPopup {
   private createNoteInputComponent(): HTMLElement {
     const container = document.createElement('div');
     container.id = 'mainInput';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '12px';
     
     // Create tags section
+    const tagsSection = this.createTagsSection();
+    
+    // Create comment section
+    const commentSection = this.createCommentSection();
+    
+    container.appendChild(tagsSection);
+    container.appendChild(commentSection);
+    
+    return container;
+  }
+
+  private createTagsSection(): HTMLElement {
     const tagsSection = document.createElement('div');
-    tagsSection.style.marginBottom = '8px';
+    tagsSection.className = 'tags-section';
+    tagsSection.style.marginBottom = '0'; // Remove margin since we use gap in container
+    
+    // Add section header
+    const sectionHeader = document.createElement('div');
+    sectionHeader.style.display = 'flex';
+    sectionHeader.style.alignItems = 'center';
+    sectionHeader.style.gap = '6px';
+    sectionHeader.style.marginBottom = '8px';
+    
+    const sectionIcon = document.createElement('span');
+    sectionIcon.textContent = '🏷️';
+    sectionIcon.style.fontSize = '14px';
     
     const tagsLabel = document.createElement('label');
-    tagsLabel.textContent = 'Tags:';
+    tagsLabel.textContent = 'Tags';
     tagsLabel.style.fontSize = '12px';
     tagsLabel.style.fontWeight = '600';
     tagsLabel.style.color = '#000';
-    tagsLabel.style.display = 'block';
-    tagsLabel.style.marginBottom = '4px';
+    tagsLabel.style.margin = '0';
+    
+    sectionHeader.appendChild(sectionIcon);
+    sectionHeader.appendChild(tagsLabel);
     
     this.tagInput = new TagInput({
       placeholder: 'Type tag name and press Enter...',
@@ -723,8 +764,7 @@ class FormPopup {
       },
       onEnterEmpty: () => {
         // Check if there's comment text or tags before auto-saving
-        const commentTextarea = this.shadowRoot.getElementById('commentInput') as HTMLTextAreaElement;
-        const commentText = commentTextarea?.value?.trim() || '';
+        const commentText = this.commentInput?.getValue()?.trim() || '';
         const tags = this.tagInput?.getTags() || [];
         
         if (tags.length > 0 || commentText.length > 0) {
@@ -734,88 +774,47 @@ class FormPopup {
       }
     });
     
-    tagsSection.appendChild(tagsLabel);
+    tagsSection.appendChild(sectionHeader);
     tagsSection.appendChild(this.tagInput.getElement());
     
-    // Create comment section (initially hidden)
+    return tagsSection;
+  }
+
+  private createCommentSection(): HTMLElement {
     const commentSection = document.createElement('div');
-    commentSection.id = 'commentSection';
-    commentSection.style.display = 'none';
+    commentSection.className = 'comment-section';
     
-    const commentLabel = document.createElement('label');
-    commentLabel.textContent = 'Comment:';
-    commentLabel.style.fontSize = '12px';
-    commentLabel.style.fontWeight = '600';
-    commentLabel.style.color = '#000';
-    commentLabel.style.display = 'block';
-    commentLabel.style.marginBottom = '4px';
+    // Add section header
+    const sectionHeader = document.createElement('div');
+    sectionHeader.style.display = 'flex';
+    sectionHeader.style.alignItems = 'center';
+    sectionHeader.style.gap = '6px';
+    sectionHeader.style.marginBottom = '8px';
     
-    const commentTextarea = document.createElement('textarea');
-    commentTextarea.id = 'commentInput';
-    commentTextarea.className = 'form-input';
-    commentTextarea.placeholder = 'Add your notes or comments here...';
-    commentTextarea.style.minHeight = '60px';
-    commentTextarea.style.resize = 'vertical';
-    commentTextarea.style.fontFamily = 'inherit';
-    commentTextarea.style.marginBottom = '8px';
-    
-    // Add Enter key handling for auto-save when textarea is focused
-    commentTextarea.addEventListener('keydown', (event) => {
-      event.stopPropagation(); // Prevent event from bubbling to TagInput
-      if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-        event.preventDefault();
+    // Create comment input component
+    this.commentInput = new CommentInput({
+      placeholder: 'Add your notes or comments here...',
+      showButton: true,
+      buttonText: '+ Add Comment',
+      onCommentChange: (value) => {
+        console.log('Comment value changed:', value);
+      },
+      onCommentFocus: () => {
+        console.log('Comment focused');
+      },
+      onCommentBlur: () => {
+        console.log('Comment blurred');
+      },
+      onSave: () => {
         console.log('Ctrl+Enter pressed in comment - auto-saving');
         this.handleSave();
       }
     });
     
-    // Prevent input events from affecting TagInput
-    commentTextarea.addEventListener('input', (event) => {
-      event.stopPropagation();
-    });
+    commentSection.appendChild(sectionHeader);
+    commentSection.appendChild(this.commentInput.getElement());
     
-    // Add blur handler to hide comment section if empty
-    commentTextarea.addEventListener('blur', () => {
-      if (!commentTextarea.value.trim()) {
-        // If comment is empty, hide comment section and show button again
-        setTimeout(() => {
-          if (!commentTextarea.value.trim()) {
-            commentSection.style.display = 'none';
-            addCommentButton.style.display = 'block';
-          }
-        }, 100); // Small delay to allow for focus changes
-      }
-    });
-    
-    commentSection.appendChild(commentLabel);
-    commentSection.appendChild(commentTextarea);
-    
-    // Create "Add Comment" button
-    const addCommentButton = document.createElement('button');
-    addCommentButton.id = 'addCommentButton';
-    addCommentButton.textContent = '+ Add Comment';
-    addCommentButton.type = 'button';
-    addCommentButton.className = 'btn-secondary';
-    addCommentButton.style.fontSize = '12px';
-    addCommentButton.style.padding = '4px 8px';
-    addCommentButton.style.marginTop = '8px';
-    addCommentButton.style.display = 'block';
-    
-    addCommentButton.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      // Show comment section
-      commentSection.style.display = 'block';
-      // Hide add comment button
-      addCommentButton.style.display = 'none';
-      // Focus on textarea
-      commentTextarea.focus();
-    });
-    container.appendChild(tagsSection);
-    container.appendChild(addCommentButton);
-    container.appendChild(commentSection);
-    
-    return container;
+    return commentSection;
   }
 
   private handleOutsideClick = (event: Event) => {
@@ -880,9 +879,8 @@ class FormPopup {
         data.tagCount = 0;
       }
       
-      // Get comment text from textarea
-      const commentTextarea = this.shadowRoot.getElementById('commentInput') as HTMLTextAreaElement;
-      data.comment = commentTextarea?.value?.trim() || '';
+      // Get comment text from CommentInput component
+      data.comment = this.commentInput?.getValue()?.trim() || '';
     } else {
       // For other inputs, get from main input
       const mainInput = this.shadowRoot.getElementById('mainInput') as HTMLInputElement;
@@ -966,7 +964,7 @@ class FormPopup {
 
     this.isVisible = true;
 
-    // Focus the input
+    // Focus the appropriate input
     setTimeout(() => {
       if (this.actionType === 'note' && this.tagInput) {
         this.tagInput.focus();
@@ -990,10 +988,14 @@ class FormPopup {
         if (this.container.parentNode) {
           document.body.removeChild(this.container);
         }
-        // Clean up TagInput component
+        // Clean up components
         if (this.tagInput) {
           this.tagInput.destroy();
           this.tagInput = undefined;
+        }
+        if (this.commentInput) {
+          this.commentInput.destroy();
+          this.commentInput = undefined;
         }
       }, 300);
     }

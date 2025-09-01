@@ -301,7 +301,7 @@ export class TagInput {
     // For custom events, we need to manually add the character to the input
     if (!(keyData instanceof KeyboardEvent) && key.length === 1 && !ctrlKey && !metaKey && !altKey) {
       input.value += key;
-      this.options.onInputChange?.(input.value);
+    //   this.options.onInputChange?.(input.value);
     }
   }
 
@@ -515,6 +515,10 @@ export class TagInput {
 
   public focus() {
     this.textInput.focus();
+  }
+
+  public isFocused(): boolean {
+    return this.shadowRoot.activeElement === this.textInput;
   }
 
   public setPlaceholder(placeholder: string) {
