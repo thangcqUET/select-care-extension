@@ -3,6 +3,28 @@ import { throttle } from './utils';
 import { TagInput } from './components/TagInput';
 import { CommentInput } from './components/CommentInput';
 
+// Listen for authentication messages from web app
+window.addEventListener('message', (event) => {
+  // Only accept messages from our web app domains
+  const allowedOrigins = ['http://localhost:3001', 'https://your-domain.com'];
+  if (!allowedOrigins.includes(event.origin)) return;
+  
+  if (event.data.type === 'SELECTCARE_AUTH' && event.data.action === 'authenticate') {
+    console.log('Received authentication message from web app:', event.data);
+    
+    // Forward the authentication data to the background script
+    chrome.runtime.sendMessage({
+      action: 'authenticate',
+      token: event.data.token,
+      userEmail: event.data.userEmail,
+      state: event.data.state
+    }).then((response) => {
+      console.log('Authentication forwarded to background script:', response);
+    }).catch((error) => {
+      console.error('Error forwarding authentication:', error);
+    });
+  }
+});
 
 let selectedText : string | undefined;
 let selectionPosition: DOMRect | undefined;

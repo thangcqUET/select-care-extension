@@ -24,8 +24,19 @@
   "permissions": [
     "storage",
     "activeTab",
-    "sidePanel"
+    "sidePanel",
+    "scripting"
   ],
+  "host_permissions": [
+    "https://your-domain.com/*",
+    "http://localhost:*/*"
+  ],
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:3001/*",
+      "https://your-domain.com/*"
+    ]
+  },
   "icons": {
     "16": "icon16.png",
     "48": "icon48.png",
