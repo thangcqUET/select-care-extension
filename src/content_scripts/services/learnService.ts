@@ -73,43 +73,33 @@ export async function populateLearnUI(selectedWord: string, controls: HTMLElemen
           // toggle active badge
           badgesWrap.querySelectorAll('.badge').forEach(el => el.classList.remove('active'));
           b.classList.add('active');
-          // show corresponding tab
+          // show corresponding tab; if the exact POS tab doesn't exist, fall back
+          // to the first available tab so the meanings are visible.
           tabs.querySelectorAll('.tab').forEach(t => (t as HTMLElement).classList.remove('active'));
           const tab = tabs.querySelector(`[data-pos="${pos}"]`) as HTMLElement | null;
-          if (tab) tab.classList.add('active');
+          if (tab) {
+            tab.classList.add('active');
+          } else {
+            const firstTab = tabs.querySelector('.tab') as HTMLElement | null;
+            if (firstTab) firstTab.classList.add('active');
+          }
         });
         badgesWrap.appendChild(b);
 
-        // Ensure corresponding tab exists; if missing, create an empty tab structure
-        let tab = tabs.querySelector(`[data-pos="${pos}"]`) as HTMLElement | null;
-        if (!tab) {
-          tab = document.createElement('div');
-          tab.className = 'tab';
-          tab.setAttribute('data-pos', pos);
-          if (idx === 0) tab.classList.add('active');
-
-          const meaningsWrap = document.createElement('div');
-          meaningsWrap.className = 'meanings-wrap';
-          const customBtn = document.createElement('button');
-          customBtn.className = 'form-button';
-          customBtn.textContent = 'Custom Definition';
-          customBtn.addEventListener('click', () => {
-            const newIdx = meaningsWrap.querySelectorAll('.meaning').length;
-            const evt = new CustomEvent('addMeaning', { detail: { pos, index: newIdx, title: '', definition: '', example: '' } });
-            meaningsWrap.dispatchEvent(evt);
-          });
-          tab.appendChild(meaningsWrap);
-          tab.appendChild(customBtn);
-          // Per-tab syn-list removed; using global synWrap instead
-          tabs.appendChild(tab);
-        }
+        // Note: do not create tabs here — `FormPopup` creates tabs and attaches
+        // the `addMeaning` listener. If a tab for `pos` doesn't exist, we will
+        // dispatch meanings into the noun tab (fallback) below.
       });
+        // Inform the popup which parts to create (FormPopup listens for 'setParts')
+        const setPartsEvt = new CustomEvent('setParts', { detail: { parts } });
+        tabs.dispatchEvent(setPartsEvt);
 
         // Ensure the visible tab matches the active badge (first part)
         if (parts.length > 0) {
           // clear any existing active tab (FormPopup may have pre-created tabs)
           tabs.querySelectorAll('.tab').forEach(t => (t as HTMLElement).classList.remove('active'));
-          const firstTab = tabs.querySelector(`[data-pos="${parts[0]}"]`) as HTMLElement | null;
+          let firstTab = tabs.querySelector(`[data-pos="${parts[0]}"]`) as HTMLElement | null;
+          if (!firstTab) firstTab = tabs.querySelector('.tab') as HTMLElement | null;
           if (firstTab) firstTab.classList.add('active');
         }
 
@@ -120,9 +110,14 @@ export async function populateLearnUI(selectedWord: string, controls: HTMLElemen
 
       entry.meanings.forEach((m:any) => {
         const pos = m.partOfSpeech || 'noun';
-        const tab = tabs.querySelector(`[data-pos="${pos}"]`) as HTMLElement | null;
-        const target = tab ? tab.querySelector('.meanings-wrap') as HTMLElement : tabs.querySelector('[data-pos="noun"] .meanings-wrap') as HTMLElement;
-        if (!target) return;
+        // prefer exact matching tab; otherwise fallback to the first available tab
+        let tab = tabs.querySelector(`[data-pos="${pos}"]`) as HTMLElement | null;
+        if (!tab) {
+          // fallback: find any existing tab with a meanings-wrap
+          tab = tabs.querySelector('.tab') as HTMLElement | null;
+        }
+        const target = tab ? tab.querySelector('.meanings-wrap') as HTMLElement | null : null;
+        if (!target) return; // nothing to attach to
 
         if (m.synonyms && Array.isArray(m.synonyms)) m.synonyms.forEach((s:string) => { if (s && s.trim()) globalSyns.add(s.trim()); });
         if (m.antonyms && Array.isArray(m.antonyms)) m.antonyms.forEach((a:string) => { if (a && a.trim()) globalAnts.add(a.trim()); });

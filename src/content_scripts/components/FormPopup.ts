@@ -452,27 +452,9 @@ export class FormPopup {
 
     root.appendChild(controls);
 
-    // Badges for parts of speech
+    // Badges for parts of speech (initially empty — populated by the service)
     const badgesWrap = document.createElement('div');
     badgesWrap.className = 'badges';
-    const parts = ['noun','verb','adjective','adverb','phrase'];
-    parts.forEach((p, idx) => {
-      const b = document.createElement('button');
-      b.className = 'badge';
-      if (idx===0) b.classList.add('active');
-      b.textContent = p;
-      b.addEventListener('click', () => {
-        // switch active badge
-        badgesWrap.querySelectorAll('.badge').forEach(el=>el.classList.remove('active'));
-        b.classList.add('active');
-        // switch tabs
-        tabs.querySelectorAll('.tab').forEach(t=> (t as HTMLElement).classList.remove('active'));
-        const tab = tabs.querySelector(`[data-pos="${p}"]`) as HTMLElement;
-        if (tab) tab.classList.add('active');
-      });
-      badgesWrap.appendChild(b);
-    });
-
     root.appendChild(badgesWrap);
 
     // Tabs container
@@ -533,7 +515,7 @@ export class FormPopup {
           this.toggleMeaning(meaning);
         });
         left.style.cursor = 'pointer';
-        
+
         const right = document.createElement('div'); right.className = 'right';
         left.appendChild(titleText);
 
@@ -701,8 +683,49 @@ export class FormPopup {
       return tab;
     };
 
-    parts.forEach(p => {
-      tabs.appendChild(createPosTab(p));
+    // Tabs will be created dynamically when the service provides parts via
+    // a CustomEvent('setParts', { detail: { parts: string[] } }).
+    // Provide a helper to ensure a tab exists for a given POS.
+    const ensureTabForPos = (pos: string, activate = false) => {
+      let tab = tabs.querySelector(`[data-pos="${pos}"]`) as HTMLElement | null;
+      if (!tab) {
+        tab = createPosTab(pos);
+        tabs.appendChild(tab);
+      }
+      if (activate) {
+        tabs.querySelectorAll('.tab').forEach(t => (t as HTMLElement).classList.remove('active'));
+        tab.classList.add('active');
+      }
+      return tab;
+    };
+
+    // Listen for parts from the service and build badges/tabs on demand
+    tabs.addEventListener('setParts', (ev: any) => {
+      const parts: string[] = ev?.detail?.parts || [];
+      // Clear existing badges
+      badgesWrap.innerHTML = '';
+      parts.forEach((p, idx) => {
+        const b = document.createElement('button');
+        b.className = 'badge';
+        if (idx === 0) b.classList.add('active');
+        b.textContent = p;
+        b.addEventListener('click', () => {
+          // toggle active badge
+          badgesWrap.querySelectorAll('.badge').forEach(el => el.classList.remove('active'));
+          b.classList.add('active');
+          // activate corresponding tab, falling back to first tab if missing
+          tabs.querySelectorAll('.tab').forEach(t => (t as HTMLElement).classList.remove('active'));
+          const tab = tabs.querySelector(`[data-pos="${p}"]`) as HTMLElement | null;
+          if (tab) tab.classList.add('active');
+          else {
+            const firstTab = tabs.querySelector('.tab') as HTMLElement | null;
+            if (firstTab) firstTab.classList.add('active');
+          }
+        });
+        badgesWrap.appendChild(b);
+        // Ensure the tab exists (but don't necessarily activate besides first)
+        ensureTabForPos(p, idx === 0);
+      });
     });
 
     root.appendChild(tabs);
