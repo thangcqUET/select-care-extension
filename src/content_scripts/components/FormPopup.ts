@@ -1,7 +1,8 @@
 import { TagInput } from './TagInput';
 import { CommentInput } from './CommentInput';
 import { convertToSelection } from '../data_mapper';
-import { isUserTyping, throttle, debounce } from '../utils';
+import { isUserTyping, debounce } from '../utils';
+import { populateLearnUI } from '../services/learnService';
 
 export class FormPopup {
   private container: HTMLDivElement;
@@ -51,8 +52,7 @@ export class FormPopup {
         
         z-index: 10001;
         pointer-events: auto;
-        min-width: 280px;
-        max-width: 320px;
+  width: 320px;
         box-sizing: border-box;
         /* allow flex children to shrink below their content width */
         > * { min-width: 0; }
@@ -484,18 +484,19 @@ export class FormPopup {
 
       // Create few sample meanings (editable)
       // helper to produce a meaning element so initial items and custom definitions share the same structure
-      const createMeaningElement = (pos:string, idx:number, opts?: {title?:string, expanded?:boolean}) => {
+  const createMeaningElement = (pos:string, idx:number, opts?: {title?:string, expanded?:boolean, definition?:string, example?:string}) => {
         const meaning = document.createElement('div');
         meaning.className = 'meaning';
 
         const title = document.createElement('div');
         title.className = 'title';
 
-        const titleText = document.createElement('input');
-        titleText.className = 'form-input';
-        titleText.value = opts?.title ?? `${pos} meaning ${idx+1}`;
-        titleText.style.fontWeight = '600';
-        titleText.style.marginRight = '8px';
+  const titleText = document.createElement('input');
+  titleText.className = 'form-input';
+  // Use provided title when available; otherwise leave blank so user can enter a label
+  titleText.value = opts?.title || '';
+  titleText.style.fontWeight = '600';
+  titleText.style.marginRight = '8px';
 
         const toggle = document.createElement('span');
         toggle.setAttribute('aria-expanded', 'false');
@@ -529,10 +530,13 @@ export class FormPopup {
         title.appendChild(left);
         title.appendChild(right);
 
-        const body = document.createElement('div'); body.className = 'body';
-        const fullDef = document.createElement('textarea'); fullDef.className = 'form-input'; fullDef.rows = 3; fullDef.value = opts?.title ? '' : `Full definition of ${pos} meaning ${idx+1}`;
-        const examples = document.createElement('textarea'); examples.className = 'form-input'; examples.rows = 2; examples.value = opts?.title ? '' : `Example sentence for ${pos} meaning ${idx+1}.`;
-        const actions = document.createElement('div'); actions.className = 'form-actions';
+  const body = document.createElement('div'); body.className = 'body';
+  const fullDef = document.createElement('textarea'); fullDef.className = 'form-input'; fullDef.rows = 3; fullDef.value = opts?.definition || '';
+  // Example field: show only when example value exists; otherwise provide a small 'Add example' action
+  const examples = document.createElement('textarea'); examples.className = 'form-input'; examples.rows = 2; examples.value = opts?.example || '';
+  const exampleLabel = document.createElement('div'); exampleLabel.className = 'small'; exampleLabel.textContent = 'Example';
+  const addExampleBtn = document.createElement('button'); addExampleBtn.className = 'form-button small'; addExampleBtn.textContent = 'Add example';
+    const actions = document.createElement('div'); actions.className = 'form-actions';
 
         const addImageBtn = document.createElement('button'); addImageBtn.className = 'form-button'; addImageBtn.textContent = 'Add Image';
         addImageBtn.addEventListener('click', (e) => {
@@ -575,7 +579,27 @@ export class FormPopup {
         });
 
         actions.appendChild(addImageBtn); actions.appendChild(genImageBtn);
-        body.appendChild(fullDef); body.appendChild(examples); body.appendChild(actions);
+        // Append definition
+        body.appendChild(fullDef);
+        // Append example only if provided; otherwise show the 'Add example' button
+        if (examples.value && examples.value.trim().length > 0) {
+          body.appendChild(exampleLabel);
+          body.appendChild(examples);
+        } else {
+          // show addExampleBtn which reveals the example input when clicked
+          addExampleBtn.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            // replace button with label+textarea and insert them before the meaning actions so they stay in-place
+            if (addExampleBtn.parentElement) addExampleBtn.parentElement.removeChild(addExampleBtn);
+            // insert before the actions block to ensure correct position
+            body.insertBefore(exampleLabel, actions);
+            body.insertBefore(examples, actions);
+            // small delay to ensure appended then focus
+            setTimeout(() => { examples.focus(); examples.scrollIntoView({ block: 'nearest' }); }, 10);
+          });
+          body.appendChild(addExampleBtn);
+        }
+        body.appendChild(actions);
         meaning.appendChild(title); meaning.appendChild(body);
 
         // mark/unmark handler (uses current DOM index when needed)
@@ -611,38 +635,38 @@ export class FormPopup {
         return meaning;
       };
 
-      for (let i=0;i<2;i++) {
-        meaningsWrap.appendChild(createMeaningElement(pos, i));
-      }
+      // No placeholder meanings here; the learn service will populate meanings based on API data.
 
       // Custom definition button
-  const customBtn = document.createElement('button');
+      const customBtn = document.createElement('button');
   customBtn.className = 'form-button';
   customBtn.textContent = 'Custom Definition';
+  customBtn.style.marginTop = '6px';
       customBtn.addEventListener('click', () => {
-        // Append a new meaning item
+        // Append an empty meaning item (user will fill contents)
         const newIdx = meaningsWrap.querySelectorAll('.meaning').length;
-        const evt = new CustomEvent('addMeaning', { detail: { pos, index: newIdx } });
+        const evt = new CustomEvent('addMeaning', { detail: { pos, index: newIdx, title: '', definition: '', example: '' } });
         meaningsWrap.dispatchEvent(evt);
       });
 
-      // Synonyms and antonyms area
-      const synWrap = document.createElement('div');
-      synWrap.className = 'syn-list';
-      synWrap.innerHTML = `<div class="small">Synonyms: <span data-syn>example1, example2</span></div>
-                          <div class="small">Antonyms: <span data-ant>opposite1</span></div>`;
-
-      tab.appendChild(meaningsWrap);
-      tab.appendChild(customBtn);
-      tab.appendChild(synWrap);
+        tab.appendChild(meaningsWrap);
+        tab.appendChild(customBtn);
 
       // Listen for addMeaning events to create editable meaning
       meaningsWrap.addEventListener('addMeaning', (_ev:any) => {
         const detail = _ev?.detail || {};
         const newIdx = meaningsWrap.querySelectorAll('.meaning').length;
-        const title = detail.title || `New ${pos} meaning`;
-        const el = createMeaningElement(pos, newIdx, { title, expanded: true });
+        // create collapsed by default
+        const el = createMeaningElement(pos, newIdx, { title: detail.title || '', definition: detail.definition || '', example: detail.example || '' });
         meaningsWrap.appendChild(el);
+        // focus the primary input for the new meaning and scroll into view
+        setTimeout(() => {
+          const input = el.querySelector('.form-input') as HTMLElement | null;
+          if (input) {
+            try { (input as HTMLInputElement).focus?.(); } catch {}
+            el.scrollIntoView({ block: 'nearest' });
+          }
+        }, 10);
       });
 
       return tab;
@@ -653,6 +677,45 @@ export class FormPopup {
     });
 
     root.appendChild(tabs);
+
+    // Global synonyms/antonyms area (not tied to partOfSpeech) — place at bottom of learn root
+    const globalSynWrap = document.createElement('div');
+    globalSynWrap.className = 'syn-list';
+    // Build a collapsible block: header + content. Keep existing font sizes.
+    const synHeader = document.createElement('div');
+    synHeader.style.display = 'flex';
+    synHeader.style.alignItems = 'center';
+    synHeader.style.fontWeight = '600';
+    synHeader.style.justifyContent = 'space-between';
+    synHeader.style.cursor = 'pointer';
+    synHeader.innerHTML = `<div class="small">Synonyms & Antonyms</div><div class="small">▾</div>`;
+
+    const synContent = document.createElement('div');
+    synContent.style.display = 'none'; // collapsed by default
+    synContent.innerHTML = `<div class="small">Synonyms: <span data-syn></span></div><div class="small">Antonyms: <span data-ant></span></div>`;
+
+    synHeader.addEventListener('click', () => {
+      const expanded = synContent.style.display === 'block';
+      synContent.style.display = expanded ? 'none' : 'block';
+      // toggle icon
+      const icon = synHeader.querySelectorAll('div')[1] as HTMLElement | null;
+      if (icon) icon.textContent = expanded ? '▾' : '▴';
+    });
+
+    globalSynWrap.appendChild(synHeader);
+    globalSynWrap.appendChild(synContent);
+    root.appendChild(globalSynWrap);
+
+    // If we have a selected text, delegate dictionary fetch + UI population to the service
+    const selected = this.selectedText?.split('\n')[0]?.trim() || '';
+    if (selected.length > 0) {
+      try {
+        // pass globalSynWrap so synonyms/antonyms are populated globally
+        populateLearnUI(selected, controls, badgesWrap, tabs, globalSynWrap);
+      } catch (err) {
+        console.error('populateLearnUI error', err);
+      }
+    }
 
     shadow.appendChild(root);
 
@@ -876,12 +939,20 @@ export class FormPopup {
   this.reposition();
       requestAnimationFrame(() => popup.classList.add('visible'));
 
-      // create throttled/debounced handlers and listen to scroll/resize to follow the anchor
-  this.repositionHandler = throttle(() => this.reposition(), 40);
-      // resize may change available space; debounce so we reposition after resize finishes
-  this.resizeHandler = debounce(() => this.reposition(), 120);
-      window.addEventListener('scroll', this.repositionHandler, true);
+//       // create throttled/debounced handlers and listen to scroll/resize to follow the anchor
+//   this.repositionHandler = throttle(() => this.reposition(), 40);
+//       // resize may change available space; debounce so we reposition after resize finishes
+  this.resizeHandler = debounce(() => {
+    console.log('resize - repositioning popup');
+    this.reposition();
+  }, 120);
+//       window.addEventListener('scroll', this.repositionHandler, true);
       window.addEventListener('resize', this.resizeHandler);
+      // not only window, when popup resizes due to content changes (e.g., learn API data), we should reposition
+      const ro = new ResizeObserver(() => {
+        this.reposition();
+      });
+      ro.observe(popup);
     }
 
     this.isVisible = true;
