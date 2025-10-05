@@ -503,17 +503,13 @@ export class FormPopup {
   const titleText = document.createElement('div');
   titleText.style.fontWeight = '500';
   titleText.style.marginRight = '8px';
-  titleText.style.cursor = 'pointer';
   titleText.style.fontSize = '12px';
   // If overflowing, use ellipsis
   titleText.style.whiteSpace = 'nowrap';
   titleText.style.overflow = 'hidden';
   titleText.style.textOverflow = 'ellipsis';
   titleText.title = opts?.title || opts?.definition || '';
-  // it should clickable to toggle the body
-        titleText.addEventListener('click', () => {
-          this.toggleMeaning(meaning);
-        });
+
   // prefer explicit title, otherwise derive from provided definition (first line or truncated)
   const deriveTitle = (text:string) => {
     if (!text) return '';
@@ -531,6 +527,13 @@ export class FormPopup {
         });
 
         const left = document.createElement('div'); left.className = 'left';
+        
+        // title toggle (expand/collapse)
+        left.addEventListener('click', () => {
+          this.toggleMeaning(meaning);
+        });
+        left.style.cursor = 'pointer';
+        
         const right = document.createElement('div'); right.className = 'right';
         left.appendChild(titleText);
 
