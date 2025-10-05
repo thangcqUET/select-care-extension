@@ -390,7 +390,7 @@ export class FormPopup {
   .meanings-wrap > .meaning { min-width: 0; }
       .tab { display:none; }
       .tab.active { display:block; }
-  .meaning { border:1px solid rgba(63,63,63,0.12); border-radius:12px; padding:8px; margin-bottom:8px; background: rgba(255,255,255,0.4); backdrop-filter: blur(5px); box-sizing:border-box; position: relative; }
+  .meaning { border:1px solid rgba(63,63,63,0.12); border-radius:12px; padding:8px; padding-top:6px; margin-bottom:8px; background: rgba(255,255,255,0.4); backdrop-filter: blur(5px); box-sizing:border-box; position: relative; }
   .meaning .title { display:flex; gap:8px; align-items:center; cursor:default; justify-content:space-between; }
   .meaning .title .left { display:flex; align-items:center; gap:8px; flex:1 1 auto; min-width:0; }
   .meaning .title .right { display:flex; gap:6px; flex:0 0 auto; align-items:center; }
@@ -491,23 +491,35 @@ export class FormPopup {
         const title = document.createElement('div');
         title.className = 'title';
 
-  const titleText = document.createElement('input');
-  titleText.className = 'form-input';
-  // Use provided title when available; otherwise leave blank so user can enter a label
-  titleText.value = opts?.title || '';
-  titleText.style.fontWeight = '600';
+  // Title now rendered as a non-editable heading; it updates from the definition textarea
+  const titleText = document.createElement('div');
+  titleText.style.fontWeight = '500';
   titleText.style.marginRight = '8px';
+  titleText.style.cursor = 'pointer';
+  titleText.style.fontSize = '12px';
+  // If overflowing, use ellipsis
+  titleText.style.whiteSpace = 'nowrap';
+  titleText.style.overflow = 'hidden';
+  titleText.style.textOverflow = 'ellipsis';
+  titleText.title = opts?.title || opts?.definition || '';
+  // it should clickable to toggle the body
+        titleText.addEventListener('click', () => {
+          this.toggleMeaning(meaning);
+        });
+  // prefer explicit title, otherwise derive from provided definition (first line or truncated)
+  const deriveTitle = (text:string) => {
+    if (!text) return '';
+    const firstLine = text.split('\n')[0].trim();
+    return firstLine.length > 60 ? firstLine.slice(0,60).trim() + '…' : firstLine;
+  };
+  titleText.textContent = opts?.title && opts.title.length ? opts.title : deriveTitle(opts?.definition || '');
 
         const toggle = document.createElement('span');
         toggle.setAttribute('aria-expanded', 'false');
         const toggleIcon = document.createElement('span'); toggleIcon.className = 'toggle-icon'; toggleIcon.textContent = '▾';
         toggle.appendChild(toggleIcon);
         toggle.addEventListener('click', () => {
-          const expanded = meaning.classList.toggle('expanded');
-          toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-          toggleIcon.textContent = expanded ? '▴' : '▾';
-          const bodyEl = meaning.querySelector('.body') as HTMLElement | null;
-          if (bodyEl) bodyEl.style.display = expanded ? 'block' : 'none';
+          this.toggleMeaning(meaning);
         });
 
         const left = document.createElement('div'); left.className = 'left';
@@ -608,7 +620,7 @@ export class FormPopup {
           const all = Array.from(meaningsWrap.querySelectorAll('.meaning'));
           const idxCurrent = all.indexOf(meaning);
           if (!isMarked) {
-            const payload = { action: 'markSave', pos, index: idxCurrent, title: titleText.value, definition: fullDef.value, examples: examples.value };
+            const payload = { action: 'markSave', pos, index: idxCurrent, title: (titleText.textContent || ''), definition: fullDef.value, examples: examples.value };
             chrome.runtime.sendMessage(payload);
             markCtrl.setAttribute('data-marked','1');
             check.textContent = '🟢';//green circle
@@ -625,6 +637,12 @@ export class FormPopup {
         };
         markCtrl.addEventListener('click', markHandler);
         markCtrl.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); markHandler(); } });
+
+        // update title when definition textarea changes
+        fullDef.addEventListener('input', () => {
+          const t = deriveTitle(fullDef.value || '');
+          titleText.textContent = t;
+        });
 
         if (opts?.expanded) {
           meaning.classList.add('expanded');
@@ -645,7 +663,7 @@ export class FormPopup {
       customBtn.addEventListener('click', () => {
         // Append an empty meaning item (user will fill contents)
         const newIdx = meaningsWrap.querySelectorAll('.meaning').length;
-        const evt = new CustomEvent('addMeaning', { detail: { pos, index: newIdx, title: '', definition: '', example: '' } });
+        const evt = new CustomEvent('addMeaning', { detail: { pos, index: newIdx, title: '', definition: 'Define here...', example: '' } });
         meaningsWrap.dispatchEvent(evt);
       });
 
@@ -721,6 +739,25 @@ export class FormPopup {
 
     // Return the container which holds the shadow DOM
     return container;
+  }
+
+  // Toggle expand/collapse for a meaning element and update aria/icon
+  private toggleMeaning(meaning: HTMLElement, expand?: boolean) {
+    if (!meaning) return;
+    const shouldExpand = typeof expand === 'boolean' ? expand : !meaning.classList.contains('expanded');
+    if (shouldExpand) {
+      meaning.classList.add('expanded');
+    } else {
+      meaning.classList.remove('expanded');
+    }
+    const toggleEl = meaning.querySelector('span[aria-expanded]') as HTMLElement | null;
+    if (toggleEl) {
+      toggleEl.setAttribute('aria-expanded', shouldExpand ? 'true' : 'false');
+      const icon = toggleEl.querySelector('.toggle-icon') as HTMLElement | null;
+      if (icon) icon.textContent = shouldExpand ? '▴' : '▾';
+    }
+    const bodyEl = meaning.querySelector('.body') as HTMLElement | null;
+    if (bodyEl) bodyEl.style.display = shouldExpand ? 'block' : 'none';
   }
 
   private createTagsSection(): HTMLElement {
