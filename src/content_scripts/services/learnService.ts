@@ -1,4 +1,4 @@
-import { fetchDictionary } from '../api/mockDictionary';
+import { fetchDictionary } from '../api/dictionary';
 
 // Populate the learn UI (controls, badgesWrap, tabs) for the selected word.
 export async function populateLearnUI(selectedWord: string, controls: HTMLElement, badgesWrap: HTMLElement, tabs: HTMLElement, synWrap?: HTMLElement) {
@@ -104,6 +104,14 @@ export async function populateLearnUI(selectedWord: string, controls: HTMLElemen
           tabs.appendChild(tab);
         }
       });
+
+        // Ensure the visible tab matches the active badge (first part)
+        if (parts.length > 0) {
+          // clear any existing active tab (FormPopup may have pre-created tabs)
+          tabs.querySelectorAll('.tab').forEach(t => (t as HTMLElement).classList.remove('active'));
+          const firstTab = tabs.querySelector(`[data-pos="${parts[0]}"]`) as HTMLElement | null;
+          if (firstTab) firstTab.classList.add('active');
+        }
 
       // Dispatch addMeaning events to respective meaning containers
       // Collect global synonyms/antonyms across all meanings (deduplicated)

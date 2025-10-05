@@ -47,18 +47,26 @@ export class FormPopup {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         color: #000;
   opacity: 0;
-  /* only animate transform (scale) and opacity for show/hide; don't animate left/top to avoid funny movement when repositioning */
-  transition: opacity 220ms ease, transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
-        
+        /* animate left/top for a gentle movement when repositioning; keep opacity and transform transitions for show/hide */
+  transition: left 180ms ease, top 180ms ease, opacity 220ms ease, transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: left, top, transform, opacity;
+        /* utility class to set position or initial placement without transition */
+        transition: left 180ms ease, top 180ms ease, opacity 220ms ease, transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        will-change: left, top, transform, opacity;
+        /* ensure popup stays above page content and receives pointer events */
         z-index: 10001;
         pointer-events: auto;
-  width: 320px;
+        width: 320px;
         box-sizing: border-box;
         /* allow flex children to shrink below their content width */
         > * { min-width: 0; }
         /* ensure long words or data URLs don't expand the popup */
         word-break: break-word;
         overflow-wrap: anywhere;
+      }
+
+      .form-popup.no-transition {
+        transition: none !important;
       }
 
       .form-popup.visible {
@@ -972,8 +980,13 @@ export class FormPopup {
 
     const popup = this.shadowRoot.querySelector('.form-popup') as HTMLElement;
     if (popup) {
-  // initial positioning and animation (clamp to viewport on first render)
+  // initial positioning: place popup at anchor without transition so it doesn't animate from off-screen
+  popup.classList.add('no-transition');
   this.reposition();
+  // force a layout to ensure position applied
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+  popup.offsetHeight;
+  popup.classList.remove('no-transition');
       requestAnimationFrame(() => popup.classList.add('visible'));
 
 //       // create throttled/debounced handlers and listen to scroll/resize to follow the anchor
@@ -1034,10 +1047,8 @@ export class FormPopup {
     let finalLeft = Math.round(preferredLeft);
     let finalTop = Math.round(preferredTop);
 
-    // horizontal clamp and vertical flip
+    // horizontal clamp: move minimally so the popup is visible (don't change more than needed)
     {
-      // When using translate(-50%), the visible left edge = left - pw/2
-      // So constrain 'left' such that visible edges remain within [8, window.innerWidth-8]
       const minVisible = 8;
       const maxVisible = Math.max(8, window.innerWidth - 8);
       const minLeft = minVisible + Math.round(pw / 2);
@@ -1047,16 +1058,22 @@ export class FormPopup {
         if (finalLeft < minLeft) finalLeft = minLeft;
         if (finalLeft > maxLeft) finalLeft = maxLeft;
       } else {
-        // Popup is wider than available space; center it in viewport
         finalLeft = Math.round(window.innerWidth / 2);
       }
 
-      // flip vertically if bottom would overflow
-      if (finalTop + ph > window.innerHeight - 8) {
-        // place above anchor
-        finalTop = Math.round(anchorViewportY - ph - margin);
-        // if still negative, clamp to top
+      // vertical adjust: prefer placing below anchor, but if it would overflow, move up just enough
+      const bottomEdge = finalTop + ph;
+      const viewportBottom = window.innerHeight - 8;
+      if (bottomEdge > viewportBottom) {
+        // try to move up so bottomEdge == viewportBottom
+        const neededShift = bottomEdge - viewportBottom;
+        finalTop = Math.round(finalTop - neededShift);
+        // if moving up moves it above the top, clamp to top
         if (finalTop < 8) finalTop = 8;
+      }
+      // if still doesn't fit (popup taller than viewport), place at top with small padding
+      if (ph > window.innerHeight - 16) {
+        finalTop = 8;
       }
     }
 
