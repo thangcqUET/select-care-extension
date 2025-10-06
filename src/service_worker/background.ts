@@ -1,5 +1,6 @@
 import { selectionDB } from "./database";
 import { detectLanguage } from './api/detectApi';
+import { fetchDictionary as backgroundFetchDictionary } from './api/dictionary';
 
 // Background service worker for Chrome extension
 console.log('Select Care Extension background script loaded');
@@ -177,6 +178,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true, result: resp.result });
       } catch (err) {
         console.error('detectLanguage failed', err);
+        sendResponse({ success: false, error: String(err) });
+      }
+    })();
+    return true;
+  }
+
+  // Dictionary fetch helper: run the dictionary lookup in the background
+  if (message.action === 'fetchDictionary') {
+    (async () => {
+      try {
+        const word = message.word || '';
+        if (!word) {
+          sendResponse({ success: false, error: 'No word provided' });
+          return;
+        }
+        const data = await backgroundFetchDictionary(word);
+        sendResponse({ success: true, data });
+      } catch (err) {
+        console.error('background fetchDictionary failed', err);
         sendResponse({ success: false, error: String(err) });
       }
     })();
