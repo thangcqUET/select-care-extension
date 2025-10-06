@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { populateLearnUI } from './learnService';
 
 // Sample data (trimmed) matching the user's payload
-const sampleData = [
+const sampleDataA = [
     {
         "word": "same",
         "phonetic": "/seɪm/",
@@ -158,11 +158,104 @@ const sampleData = [
     }
 ];
 
+// Another sample to exercise different POS shapes
+const sampleDataB = [
+    {
+        "word": "receiving",
+        "phonetic": "/ɹɪˈsiːvɪŋ/",
+        "phonetics": [
+            {
+                "text": "/ɹɪˈsiːvɪŋ/",
+                "audio": "https://api.dictionaryapi.dev/media/pronunciations/en/receiving-us.mp3",
+                "sourceUrl": "https://commons.wikimedia.org/w/index.php?curid=1669341",
+                "license": {
+                    "name": "BY-SA 3.0",
+                    "url": "https://creativecommons.org/licenses/by-sa/3.0"
+                }
+            }
+        ],
+        "meanings": [
+            {
+                "partOfSpeech": "verb",
+                "definitions": [
+                    {
+                        "definition": "To take, as something that is offered, given, committed, sent, paid, etc.; to accept; to be given something.",
+                        "synonyms": [],
+                        "antonyms": [],
+                        "example": "She received many presents for her birthday."
+                    },
+                    {
+                        "definition": "To take goods knowing them to be stolen.",
+                        "synonyms": [],
+                        "antonyms": []
+                    },
+                    {
+                        "definition": "To act as a host for guests; to give admittance to; to permit to enter, as into one's house, presence, company, etc.",
+                        "synonyms": [],
+                        "antonyms": [],
+                        "example": "to receive a lodger, visitor, ambassador, messenger, etc."
+                    },
+                    {
+                        "definition": "To incur (an injury).",
+                        "synonyms": [],
+                        "antonyms": [],
+                        "example": "I received a bloody nose from the collision."
+                    },
+                    {
+                        "definition": "To allow (a custom, tradition, etc.); to give credence or acceptance to.",
+                        "synonyms": [],
+                        "antonyms": []
+                    },
+                    {
+                        "definition": "To detect a signal from a transmitter.",
+                        "synonyms": [],
+                        "antonyms": []
+                    },
+                    {
+                        "definition": "To be in a position to take possession, or hit back the ball.",
+                        "synonyms": [],
+                        "antonyms": []
+                    },
+                    {
+                        "definition": "To accept into the mind; to understand.",
+                        "synonyms": [],
+                        "antonyms": []
+                    }
+                ],
+                "synonyms": [],
+                "antonyms": []
+            },
+            {
+                "partOfSpeech": "noun",
+                "definitions": [
+                    {
+                        "definition": "The act by which something is received; reception.",
+                        "synonyms": [],
+                        "antonyms": []
+                    }
+                ],
+                "synonyms": [],
+                "antonyms": []
+            }
+        ],
+        "license": {
+            "name": "CC BY-SA 3.0",
+            "url": "https://creativecommons.org/licenses/by-sa/3.0"
+        },
+        "sourceUrls": [
+            "https://en.wiktionary.org/wiki/receive",
+            "https://en.wiktionary.org/wiki/receiving"
+        ]
+    }
+];
+
 // Mock the dictionary adapter used by the service
 vi.mock('../api/dictionary', () => ({
-  fetchDictionary: async (w: string) => {
-    return sampleData;
-  }
+    fetchDictionary: async (w: string) => {
+        if (w === 'same') return sampleDataA;
+        if (w === 'receiving') return sampleDataB;
+        return [];
+    }
 }));
 
 describe('populateLearnUI', () => {
@@ -208,7 +301,7 @@ describe('populateLearnUI', () => {
         };
   });
 
-  it('creates separate meaning lists for pronoun and interjection', async () => {
+  it('covered case for "same"', async () => {
     await populateLearnUI('same', controls, badgesWrap, tabs, synWrap);
 
     const adjWrap = tabs.querySelector('[data-pos="adjective"] .meanings-wrap') as HTMLElement | null;
@@ -225,4 +318,18 @@ describe('populateLearnUI', () => {
     // interjection should have 1 definition
     expect(interWrap!.children.length).toBe(1);
   });
+
+    it('covered case for "receiving"', async () => {
+        // reset tabs
+        tabs.innerHTML = '';
+        await populateLearnUI('receiving', controls, badgesWrap, tabs, synWrap);
+
+        const verbWrap = tabs.querySelector('[data-pos="verb"] .meanings-wrap') as HTMLElement | null;
+        const nounWrap = tabs.querySelector('[data-pos="noun"] .meanings-wrap') as HTMLElement | null;
+
+        expect(verbWrap).not.toBeNull();
+        expect(nounWrap).not.toBeNull();
+        expect(verbWrap!.children.length).toBe(8);
+        expect(nounWrap!.children.length).toBe(1);
+    });
 });
