@@ -396,7 +396,7 @@ export class FormPopup {
       .badge { padding:6px 8px; border-radius:999px; background: rgba(0,0,0,0.04); cursor:pointer; font-size:12px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; border: none; }
       .badge.active { border: 1px solid rgba(63,63,63,0.2); }
   .tabs { margin-top:8px; }
-  .meanings-wrap { width: 100%; max-width: 100%; max-height: 220px; overflow-y: auto; padding-right: 6px; box-sizing: border-box; }
+  .meanings-wrap { width: 100%; max-width: 100%; max-height: 230px; overflow-y: auto; padding-right: 6px; box-sizing: border-box; }
   /* hide native scrollbars while preserving scroll behavior */
   .meanings-wrap::-webkit-scrollbar { width: 0; height: 0; }
   .meanings-wrap { -ms-overflow-style: none; /* IE and Edge */ scrollbar-width: none; /* Firefox */ }
@@ -883,6 +883,42 @@ export class FormPopup {
     }
     const bodyEl = meaning.querySelector('.body') as HTMLElement | null;
     if (bodyEl) bodyEl.style.display = shouldExpand ? 'block' : 'none';
+    // If expanded, ensure the entire meaning element is visible inside its scrollable parent (.meanings-wrap)
+    if (shouldExpand) {
+      // find nearest ancestor with class meanings-wrap
+      let parent: HTMLElement | null = meaning.parentElement as HTMLElement | null;
+      while (parent && !parent.classList.contains('meanings-wrap')) {
+        parent = parent.parentElement as HTMLElement | null;
+      }
+      if (parent) {
+        // get bounding rects
+        const parentRect = parent.getBoundingClientRect();
+        const meaningRect = meaning.getBoundingClientRect();
+        // compute overflows relative to parent
+        const topOverflow = meaningRect.top - parentRect.top;
+        const bottomOverflow = meaningRect.bottom - parentRect.bottom;
+        // compute desired new scrollTop value
+        let desiredScrollTop = parent.scrollTop;
+        if (topOverflow < 0) {
+          desiredScrollTop = parent.scrollTop + topOverflow - 8; // small padding
+        } else if (bottomOverflow > 0) {
+          desiredScrollTop = parent.scrollTop + bottomOverflow + 8; // small padding
+        }
+        // Respect user preference for reduced motion
+        const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (desiredScrollTop !== parent.scrollTop) {
+          if (prefersReduced) {
+            parent.scrollTop = desiredScrollTop;
+          } else {
+            try {
+              parent.scrollTo({ top: desiredScrollTop, behavior: 'smooth' });
+            } catch (e) {
+              parent.scrollTop = desiredScrollTop;
+            }
+          }
+        }
+      }
+    }
   }
 
   private createTagsSection(): HTMLElement {
