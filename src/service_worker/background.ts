@@ -1,4 +1,5 @@
 import { selectionDB } from "./database";
+import { detectLanguage } from './api/detectApi';
 
 // Background service worker for Chrome extension
 console.log('Select Care Extension background script loaded');
@@ -155,6 +156,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     
     // Return true to indicate async response
+    return true;
+  }
+
+  // Language detection helper: content scripts can ask the background to detect language
+  if (message.action === 'detectLanguage') {
+    // message: { action: 'detectLanguage', text: string }
+    (async () => {
+      try {
+        const text = message.text || '';
+        if (!text) {
+          sendResponse({ success: false, error: 'No text provided' });
+          return;
+        }
+        const resp = await detectLanguage(text);
+        if (!resp || !resp.success) {
+          sendResponse({ success: false, error: resp?.error || 'detection failed' });
+          return;
+        }
+        sendResponse({ success: true, result: resp.result });
+      } catch (err) {
+        console.error('detectLanguage failed', err);
+        sendResponse({ success: false, error: String(err) });
+      }
+    })();
     return true;
   }
   

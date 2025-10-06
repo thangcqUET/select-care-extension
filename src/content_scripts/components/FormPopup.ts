@@ -448,19 +448,36 @@ export class FormPopup {
     const root = document.createElement('div');
     root.className = 'learn-root';
 
+    // Helper to show an inline message inside the learn popup (reusable)
+    const showInlineMessage = (msg: string, kind: 'info' | 'error' = 'info') => {
+      // remove existing inline messages first
+      const prev = root.querySelector('.inline-message');
+      if (prev && prev.parentElement) prev.parentElement.removeChild(prev);
+      const el = document.createElement('div');
+      el.className = 'inline-message no-results';
+      if (kind === 'error') {
+        el.style.borderStyle = 'solid';
+      }
+      el.textContent = msg;
+      root.appendChild(el);
+      return el;
+    };
+
     // Translate controls
     const controls = document.createElement('div');
     controls.className = 'translate-controls';
 
-    const destSelect = document.createElement('select');
-    destSelect.title = 'Destination Language';
-    ['auto','vi','en','es','fr','de','zh'].forEach(code => {
-      const o = document.createElement('option'); o.value = code; o.textContent = code; destSelect.appendChild(o);
+    // Current/source language (detect or set explicitly)
+    const sourceSelect = document.createElement('select');
+    sourceSelect.title = 'Current Language';
+    ['auto', 'en'].forEach(code => {
+      const o = document.createElement('option'); o.value = code; o.textContent = code; sourceSelect.appendChild(o);
     });
 
+    // Target language (what to translate/learn into)
     const targetSelect = document.createElement('select');
     targetSelect.title = 'Target Language';
-    ['vi','en','es','fr','de','zh'].forEach(code => {
+    ['vi','en'].forEach(code => {
       const o = document.createElement('option'); o.value = code; o.textContent = code; targetSelect.appendChild(o);
     });
     // Try to use browser locale as default
@@ -468,8 +485,12 @@ export class FormPopup {
     const defaultOption = Array.from(targetSelect.options).find((opt:any) => opt.value === locale);
     if (defaultOption) defaultOption.selected = true;
 
-    controls.appendChild(destSelect);
+    controls.appendChild(sourceSelect);
     controls.appendChild(targetSelect);
+
+    // Expose selects on the FormPopup instance so collectFormData can read them
+    (this as any).__learnSourceSelect = sourceSelect;
+    (this as any).__learnTargetSelect = targetSelect;
 
     root.appendChild(controls);
 
@@ -817,23 +838,67 @@ export class FormPopup {
     }
 
     if (selected.length > 0) {
-      // call populateLearnUI and handle UI updates via promise callbacks
-      populateLearnUI(selected, controls, badgesWrap, tabs, globalSynWrap)
-        .then(() => {
+      // If user set source language to 'auto', ask the background to detect language first
+      const srcSel = (this as any).__learnSourceSelect as HTMLSelectElement | undefined;
+      const srcValue = srcSel?.value || 'auto';
+
+      const runPopulate = async () => {
+        await populateLearnUI(selected, controls, badgesWrap, tabs, globalSynWrap);
+        return true;
+      };
+
+      const tryDetectThenPopulate = async () => {
+        if (srcValue === 'auto') {
+          try {
+            const resp = await new Promise<any>((resolve) => {
+              chrome.runtime.sendMessage({ action: 'detectLanguage', text: selected }, (r:any) => resolve(r));
+            });
+            if (resp && resp.success && resp.result && resp.result.detectedLanguage) {
+              const detected = resp.result.detectedLanguage.language;
+              // If detected language is not English, show an inline message and don't run dictionary lookup
+              if (detected && detected !== 'en') {
+                showInlineMessage(`Detected language: ${detected}. Dictionary lookup (English) skipped.`, 'info');
+                // still allow user to open the popup, but don't call populate
+                return Promise.resolve(false);
+              }
+              // if English, proceed to populate
+              return runPopulate();
+            } else {
+              // detection failed — fall back to populate
+              return runPopulate();
+            }
+          } catch (err) {
+            // on error, fall back to populate
+            return runPopulate();
+          }
+        } else if (srcValue === 'en') {
+          return runPopulate();
+        } else {
+          // unsupported source language for now — show inline message in the popup and skip lookup
+          showInlineMessage(`Source language set to "${srcValue}". Dictionary lookup (English) skipped.`, 'info');
+          return Promise.resolve(false);
+        }
+      };
+
+      // call detection+populate and handle UI updates via promise callbacks
+      tryDetectThenPopulate()
+        .then((didRun: boolean) => {
           if (loadingWrap.parentElement) loadingWrap.parentElement.removeChild(loadingWrap);
           const anyMeaning = tabs.querySelector('.meanings-wrap .meaning');
-          if (!anyMeaning) {
+          // Only show the 'no meanings' hint when we actually ran populate
+          if (didRun && !anyMeaning) {
             // Ensure there's at least a default tab (noun) so users can add custom definitions
             const nounTab = ensureTabForPos('noun', true);
             const targetWrap = nounTab ? (nounTab.querySelector('.meanings-wrap') as HTMLElement | null) : null;
-            if (targetWrap) {
+              if (targetWrap) {
               // remove any previous placeholder nodes
               const prevHint = targetWrap.querySelector('.no-results-hint');
               if (prevHint && prevHint.parentElement) prevHint.parentElement.removeChild(prevHint);
-              const hint = document.createElement('div');
-              hint.className = 'no-results small no-results-hint';
-              hint.textContent = `No dictionary meanings found for "${selected}". Use "Custom Definition" to add your own.`;
-              targetWrap.appendChild(hint);
+              // use reusable inline message helper so placement and styling are consistent
+              const hintEl = showInlineMessage(`No dictionary meanings found for "${selected}". Use "Custom Definition" to add your own.`, 'info');
+              hintEl.classList.add('small', 'no-results-hint');
+              // ensure the hint is placed inside the meanings wrap for context
+              targetWrap.appendChild(hintEl);
             } else {
               // fallback: append a small hint to the root
               const noResults = document.createElement('div');
@@ -842,8 +907,8 @@ export class FormPopup {
               root.appendChild(noResults);
             }
           }
-        })
-        .catch((err) => {
+  })
+  .catch((err) => {
           console.error('populateLearnUI error', err);
           if (loadingWrap.parentElement) loadingWrap.parentElement.removeChild(loadingWrap);
           const errEl = document.createElement('div');
@@ -1070,8 +1135,11 @@ export class FormPopup {
     // Set data based on action type
     switch (this.actionType) {
       case 'learn':
-        data.targetLanguage = inputValue || 'English';
-        data.sourceLanguage = 'auto';
+        // Prefer the selected values from the learn UI selects if available
+        const srcSel = (this as any).__learnSourceSelect as HTMLSelectElement | undefined;
+        const tgtSel = (this as any).__learnTargetSelect as HTMLSelectElement | undefined;
+        data.targetLanguage = (tgtSel?.value && tgtSel.value !== 'auto') ? tgtSel.value : (inputValue || 'English');
+        data.sourceLanguage = (srcSel?.value) ? srcSel.value : 'auto';
         // Add hidden function tag for learn
         data.tags = ['fn_learn'];
         break;
