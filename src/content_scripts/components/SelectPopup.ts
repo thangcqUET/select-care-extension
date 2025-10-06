@@ -16,7 +16,7 @@ export class SelectPopup {
   private shadowRoot: ShadowRoot;
   private isVisible: boolean = false;
   private isHovering: boolean = false;
-  private hideTimeout: number | null = null;
+  private hideTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.container = document.createElement('div');

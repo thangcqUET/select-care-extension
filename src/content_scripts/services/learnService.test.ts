@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { populateLearnUI } from './learnService';
 
@@ -177,35 +178,48 @@ describe('populateLearnUI', () => {
     tabs = document.createElement('div');
     synWrap = document.createElement('div');
 
-    // Simulate FormPopup behavior: listen for setParts and create tabs with .meanings-wrap
-    tabs.addEventListener('setParts', (ev: any) => {
-      const parts: string[] = ev?.detail?.parts || [];
-      // clear existing
-      tabs.innerHTML = '';
-      parts.forEach((p, idx) => {
-        const tab = document.createElement('div');
-        tab.className = 'tab';
-        tab.setAttribute('data-pos', p);
-        if (idx === 0) tab.classList.add('active');
-        const meaningsWrap = document.createElement('div');
-        meaningsWrap.className = 'meanings-wrap';
-        tab.appendChild(meaningsWrap);
-        const customBtn = document.createElement('button');
-        customBtn.className = 'form-button';
-        customBtn.textContent = 'Custom Definition';
-        tab.appendChild(customBtn);
-        tabs.appendChild(tab);
-      });
-    });
+        // Simulate FormPopup behavior: provide an ensureParts function that the
+        // service will call directly (preferred API).
+        (tabs as any).ensureParts = (parts: string[]) => {
+            // clear existing
+            tabs.innerHTML = '';
+            parts.forEach((p, idx) => {
+                const tab = document.createElement('div');
+                tab.className = 'tab';
+                tab.setAttribute('data-pos', p);
+                if (idx === 0) tab.classList.add('active');
+                const meaningsWrap = document.createElement('div');
+                meaningsWrap.className = 'meanings-wrap';
+                    // simulate FormPopup's addMeaning listener: append a simple div per meaning
+                    meaningsWrap.addEventListener('addMeaning', (ev: any) => {
+                        const detail = ev?.detail || {};
+                        const def = document.createElement('div');
+                        def.className = 'meaning';
+                        def.textContent = detail.definition || detail.title || '';
+                        meaningsWrap.appendChild(def);
+                    });
+                    tab.appendChild(meaningsWrap);
+                const customBtn = document.createElement('button');
+                customBtn.className = 'form-button';
+                customBtn.textContent = 'Custom Definition';
+                tab.appendChild(customBtn);
+                tabs.appendChild(tab);
+            });
+        };
   });
 
   it('creates separate meaning lists for pronoun and interjection', async () => {
     await populateLearnUI('same', controls, badgesWrap, tabs, synWrap);
 
+    const adjWrap = tabs.querySelector('[data-pos="adjective"] .meanings-wrap') as HTMLElement | null;
     const pronWrap = tabs.querySelector('[data-pos="pronoun"] .meanings-wrap') as HTMLElement | null;
     const interWrap = tabs.querySelector('[data-pos="interjection"] .meanings-wrap') as HTMLElement | null;
     expect(pronWrap).not.toBeNull();
     expect(interWrap).not.toBeNull();
+    expect(adjWrap).not.toBeNull();
+    // adjective should have 5 definitions
+
+    expect(adjWrap!.children.length).toBe(5);
     // pronoun should have 4 definitions
     expect(pronWrap!.children.length).toBe(4);
     // interjection should have 1 definition

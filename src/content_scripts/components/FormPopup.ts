@@ -8,6 +8,13 @@ export class FormPopup {
   private container: HTMLDivElement;
   private shadowRoot: ShadowRoot;
   private isVisible: boolean = false;
+  // optional implementation hook set when the learn UI is created
+  private _ensurePartsImpl?: (parts: string[]) => void;
+  // Public API: ensure the popup has tabs/badges for the given parts
+  public ensureParts(parts: string[]) {
+    if (this._ensurePartsImpl) return this._ensurePartsImpl(parts);
+    return;
+  }
   // anchor point in document coordinates (pixels) used to position popup
   private anchorDocX?: number;
   private anchorDocY?: number;
@@ -420,6 +427,20 @@ export class FormPopup {
   .toggle-icon { font-size:14px; display:inline-block; }
       .syn-list { margin-top:8px; font-size:13px; color:rgba(0,0,0,0.75); }
       .small { font-size:12px; color:rgba(0,0,0,0.6); }
+      /* Loading / skeleton styles for async dictionary fetch */
+      .learn-loading { display:flex; flex-direction:column; gap:8px; padding:8px 0; }
+      .learn-loading .skeleton-line { height:12px; background:linear-gradient(90deg, rgba(0,0,0,0.06), rgba(0,0,0,0.12), rgba(0,0,0,0.06)); border-radius:6px; position:relative; overflow:hidden; }
+      .learn-loading .skeleton-line::after { content: ''; position: absolute; top:0; left:-150%; height:100%; width:150%; background: linear-gradient(90deg, rgba(255,255,255,0.0), rgba(255,255,255,0.35), rgba(255,255,255,0.0)); transform: skewX(-20deg); }
+      .learn-loading .skeleton-line.short { width:35%; }
+      .learn-loading .skeleton-line.medium { width:60%; }
+      .learn-loading .skeleton-line.long { width:90%; }
+      /* shimmer animation */
+      @keyframes shimmer {
+        0% { transform: translateX(-150%) skewX(-20deg); }
+        100% { transform: translateX(150%) skewX(-20deg); }
+      }
+      .learn-loading .skeleton-line.animated::after { animation: shimmer 1.1s linear infinite; }
+      .no-results { margin-top:8px; padding:8px; border-radius:8px; background: rgba(255,255,255,0.2); border:1px dashed rgba(63,63,63,0.08); font-size:13px; color: rgba(0,0,0,0.6); }
     `;
 
     shadow.appendChild(style);
@@ -654,9 +675,9 @@ export class FormPopup {
   customBtn.textContent = 'Custom Definition';
   customBtn.style.marginTop = '6px';
       customBtn.addEventListener('click', () => {
-        // Append an empty meaning item (user will fill contents)
+        // Append an empty meaning item (user will fill contents). Mark as user-initiated
         const newIdx = meaningsWrap.querySelectorAll('.meaning').length;
-        const evt = new CustomEvent('addMeaning', { detail: { pos, index: newIdx, title: '', definition: 'Define here...', example: '' } });
+        const evt = new CustomEvent('addMeaning', { detail: { pos, index: newIdx, title: '', definition: 'Define here...', example: '', userInitiated: true } });
         meaningsWrap.dispatchEvent(evt);
       });
 
@@ -666,18 +687,21 @@ export class FormPopup {
       // Listen for addMeaning events to create editable meaning
       meaningsWrap.addEventListener('addMeaning', (_ev:any) => {
         const detail = _ev?.detail || {};
+        const userInitiated = !!detail.userInitiated;
         const newIdx = meaningsWrap.querySelectorAll('.meaning').length;
         // create collapsed by default
         const el = createMeaningElement(pos, newIdx, { title: detail.title || '', definition: detail.definition || '', example: detail.example || '' });
         meaningsWrap.appendChild(el);
-        // focus the primary input for the new meaning and scroll into view
-        setTimeout(() => {
-          const input = el.querySelector('.form-input') as HTMLElement | null;
-          if (input) {
-            try { (input as HTMLInputElement).focus?.(); } catch {}
-            el.scrollIntoView({ block: 'nearest' });
-          }
-        }, 10);
+        // Only focus/scroll when the addition was user-initiated (e.g., Custom Definition)
+        if (userInitiated) {
+          setTimeout(() => {
+            const input = el.querySelector('.form-input') as HTMLElement | null;
+            if (input) {
+              try { (input as HTMLInputElement).focus?.(); } catch {}
+              el.scrollIntoView({ block: 'nearest' });
+            }
+          }, 10);
+        }
       });
 
       return tab;
@@ -699,9 +723,11 @@ export class FormPopup {
       return tab;
     };
 
-    // Listen for parts from the service and build badges/tabs on demand
-    tabs.addEventListener('setParts', (ev: any) => {
-      const parts: string[] = ev?.detail?.parts || [];
+    // Build parts helper used by the service. Attach it to the tabs element so
+    // consumers can call it directly (preferred) or dispatch a 'setParts' event
+    // (legacy fallback). Also expose a FormPopup instance method that forwards
+    // to this implementation so callers can reuse it directly from the class.
+    const buildParts = (parts: string[]) => {
       // Clear existing badges
       badgesWrap.innerHTML = '';
       parts.forEach((p, idx) => {
@@ -726,6 +752,17 @@ export class FormPopup {
         // Ensure the tab exists (but don't necessarily activate besides first)
         ensureTabForPos(p, idx === 0);
       });
+    };
+
+    // attach helper implementation to the instance so ensureParts() can call it
+    this._ensurePartsImpl = buildParts;
+    // also expose the helper directly on the tabs element for backward-compat
+    (tabs as any).ensureParts = (p: string[]) => { this.ensureParts(p); };
+
+    // legacy event-based API — still supported
+    tabs.addEventListener('setParts', (ev: any) => {
+      const parts: string[] = ev?.detail?.parts || [];
+      buildParts(parts);
     });
 
     root.appendChild(tabs);
@@ -754,19 +791,73 @@ export class FormPopup {
       if (icon) icon.textContent = expanded ? '▾' : '▴';
     });
 
-    globalSynWrap.appendChild(synHeader);
-    globalSynWrap.appendChild(synContent);
-    root.appendChild(globalSynWrap);
+  globalSynWrap.appendChild(synHeader);
+  globalSynWrap.appendChild(synContent);
+  // hide by default; the service will show it only when there is data
+  globalSynWrap.style.display = 'none';
+  root.appendChild(globalSynWrap);
 
-    // If we have a selected text, delegate dictionary fetch + UI population to the service
+    // If we have a selected text, show loading UI and delegate dictionary fetch + UI population to the service
     const selected = this.selectedText?.split('\n')[0]?.trim() || '';
+    const loadingWrap = document.createElement('div');
+    loadingWrap.className = 'learn-loading';
+    loadingWrap.innerHTML = `
+      <div class="skeleton-line long animated"></div>
+      <div class="skeleton-line medium animated"></div>
+      <div class="skeleton-line short animated"></div>
+    `;
+    // Insert loading placeholder into the first tab (noun fallback) so it's visible while fetching
+    const firstTab = tabs.querySelector('.tab') as HTMLElement | null;
+    const initialTarget = firstTab ? (firstTab.querySelector('.meanings-wrap') as HTMLElement | null) : null;
+    if (initialTarget) {
+      initialTarget.appendChild(loadingWrap);
+    } else {
+      // no tab exists yet — append to the tabs container so the skeleton is visible
+      tabs.appendChild(loadingWrap);
+    }
+
     if (selected.length > 0) {
-      try {
-        // pass globalSynWrap so synonyms/antonyms are populated globally
-        populateLearnUI(selected, controls, badgesWrap, tabs, globalSynWrap);
-      } catch (err) {
-        console.error('populateLearnUI error', err);
-      }
+      // call populateLearnUI and handle UI updates via promise callbacks
+      populateLearnUI(selected, controls, badgesWrap, tabs, globalSynWrap)
+        .then(() => {
+          if (loadingWrap.parentElement) loadingWrap.parentElement.removeChild(loadingWrap);
+          const anyMeaning = tabs.querySelector('.meanings-wrap .meaning');
+          if (!anyMeaning) {
+            // Ensure there's at least a default tab (noun) so users can add custom definitions
+            const nounTab = ensureTabForPos('noun', true);
+            const targetWrap = nounTab ? (nounTab.querySelector('.meanings-wrap') as HTMLElement | null) : null;
+            if (targetWrap) {
+              // remove any previous placeholder nodes
+              const prevHint = targetWrap.querySelector('.no-results-hint');
+              if (prevHint && prevHint.parentElement) prevHint.parentElement.removeChild(prevHint);
+              const hint = document.createElement('div');
+              hint.className = 'no-results small no-results-hint';
+              hint.textContent = `No dictionary meanings found for "${selected}". Use "Custom Definition" to add your own.`;
+              targetWrap.appendChild(hint);
+            } else {
+              // fallback: append a small hint to the root
+              const noResults = document.createElement('div');
+              noResults.className = 'no-results';
+              noResults.textContent = `No results for "${selected}"`;
+              root.appendChild(noResults);
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('populateLearnUI error', err);
+          if (loadingWrap.parentElement) loadingWrap.parentElement.removeChild(loadingWrap);
+          const errEl = document.createElement('div');
+          errEl.className = 'no-results';
+          errEl.textContent = 'Failed to load dictionary data';
+          root.appendChild(errEl);
+        });
+    } else {
+      // No selected text — remove loading and show hint
+      if (loadingWrap.parentElement) loadingWrap.parentElement.removeChild(loadingWrap);
+      const hint = document.createElement('div');
+      hint.className = 'no-results';
+      hint.textContent = 'Select a word to look up meanings';
+      root.appendChild(hint);
     }
 
     shadow.appendChild(root);

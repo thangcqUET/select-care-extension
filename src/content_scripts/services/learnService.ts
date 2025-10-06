@@ -90,9 +90,15 @@ export async function populateLearnUI(selectedWord: string, controls: HTMLElemen
         // the `addMeaning` listener. If a tab for `pos` doesn't exist, we will
         // dispatch meanings into the noun tab (fallback) below.
       });
-        // Inform the popup which parts to create (FormPopup listens for 'setParts')
-        const setPartsEvt = new CustomEvent('setParts', { detail: { parts } });
-        tabs.dispatchEvent(setPartsEvt);
+        // Inform the popup which parts to create. Prefer a direct function if
+        // the UI exposes it; otherwise fall back to the legacy event.
+        const anyTabs = tabs as any;
+        if (typeof anyTabs.ensureParts === 'function') {
+          try { anyTabs.ensureParts(parts); } catch (e) { /* ignore */ }
+        } else {
+          const setPartsEvt = new CustomEvent('setParts', { detail: { parts } });
+          tabs.dispatchEvent(setPartsEvt);
+        }
 
         // Ensure the visible tab matches the active badge (first part)
         if (parts.length > 0) {
@@ -128,12 +134,19 @@ export async function populateLearnUI(selectedWord: string, controls: HTMLElemen
         });
       });
 
-      // Populate global syn/ant if synWrap provided
+      // Populate global syn/ant if synWrap provided. Only show the block when we have data.
       if (synWrap) {
         const synSpan = synWrap.querySelector('[data-syn]') as HTMLElement | null;
         const antSpan = synWrap.querySelector('[data-ant]') as HTMLElement | null;
-        if (synSpan) synSpan.textContent = Array.from(globalSyns).join(', ');
-        if (antSpan) antSpan.textContent = Array.from(globalAnts).join(', ');
+        const synText = Array.from(globalSyns).join(', ');
+        const antText = Array.from(globalAnts).join(', ');
+        if (synSpan) synSpan.textContent = synText;
+        if (antSpan) antSpan.textContent = antText;
+        if ((synText && synText.trim().length > 0) || (antText && antText.trim().length > 0)) {
+          synWrap.style.display = 'block';
+        } else {
+          synWrap.style.display = 'none';
+        }
       }
     }
   } catch (err) {
