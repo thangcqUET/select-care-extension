@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+  "build": "tsc -b && vite build && npm run build:content:nomodule",
+  "build:content:nomodule": "npx esbuild src/content_scripts/content.ts --bundle --platform=browser --target=es2017 --outfile=dist/content.nomodule.js --format=iife --minify",
     "test": "vitest",
     "lint": "eslint .",
     "preview": "vite preview"

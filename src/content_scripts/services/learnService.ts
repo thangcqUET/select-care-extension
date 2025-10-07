@@ -47,7 +47,32 @@ export async function populateLearnUI(selectedWord: string, controls: HTMLElemen
         a.className = 'form-button small';
         a.textContent = '🔊';
         a.title = 'Play pronunciation';
-        a.addEventListener('click', () => { new Audio(preferred.audio).play().catch(()=>{}); });
+        const playAudio = async () => {
+          try {
+            const audio = new Audio(preferred.audio);
+            // attach an error handler for cases where CSP blocks media or load fails
+            let handled = false;
+            const onErr = (ev: any) => {
+              handled = true;
+              // dispatch a small helper event so FormPopup (which owns the UI) can show an inline message if it wants
+              const evt = new CustomEvent('audioPlayFailed', { detail: { src: preferred.audio, reason: ev?.message || 'playback error' } });
+              document.dispatchEvent(evt);
+              audio.removeEventListener('error', onErr);
+            };
+            audio.addEventListener('error', onErr);
+            await audio.play();
+            // small timeout to check if error event fired synchronously
+            setTimeout(() => {
+              if (handled) return;
+              audio.removeEventListener('error', onErr);
+            }, 50);
+          } catch (e:any) {
+            // Playback failed (e.g., CSP or user gesture requirement). Notify the popup.
+            const evt = new CustomEvent('audioPlayFailed', { detail: { src: preferred.audio, reason: e?.message || 'playback failed' } });
+            document.dispatchEvent(evt);
+          }
+        };
+        a.addEventListener('click', () => { void playAudio(); });
         phonWrap.appendChild(a);
       }
       controls.parentElement?.insertBefore(phonWrap, badgesWrap);

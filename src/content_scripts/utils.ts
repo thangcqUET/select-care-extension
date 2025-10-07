@@ -22,7 +22,6 @@ export function debounce(func: (...args: any[]) => void, delay: number) {
 // Function to check if user is currently typing in an input field
 export function isUserTyping(): boolean {
   const activeElement = document.activeElement;
-  console.log(activeElement);
   if (!activeElement) return false;
   
   // Check if it's an input field, textarea, or content editable

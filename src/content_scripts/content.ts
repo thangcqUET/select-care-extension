@@ -60,12 +60,11 @@ document.addEventListener('selectionchange', throttle(() => {
 // });
 
 //listen mouse up event
-document.addEventListener('mouseup', (event: MouseEvent) => {
-  console.log('Mouse up at:', event.clientX, event.clientY);
+document.addEventListener('mouseup', () => {
   
   // Don't show popup if user is typing in an input field
   if (isUserTyping()) {
-    console.log('User is typing, skipping popup');
+    console.debug('User is typing, skipping popup');
     return;
   }
   

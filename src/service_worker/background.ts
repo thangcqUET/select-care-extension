@@ -1,5 +1,6 @@
 import { selectionDB } from "./database";
 import { detectLanguage } from './api/detectApi';
+import { translateDriver } from './api/translation';
 import { fetchDictionary as backgroundFetchDictionary } from './api/dictionary';
 
 // Background service worker for Chrome extension
@@ -197,6 +198,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true, data });
       } catch (err) {
         console.error('background fetchDictionary failed', err);
+        sendResponse({ success: false, error: String(err) });
+      }
+    })();
+    return true;
+  }
+
+  // Translate helper: content scripts can ask the background to translate a word
+  if (message.action === 'translate') {
+    // message: { action: 'translate', text: string, target: string, source?: string }
+    (async () => {
+      try {
+        const text = message.text || '';
+        if (!text) {
+          sendResponse({ success: false, error: 'No text provided' });
+          return;
+        }
+        const target = message.target || 'en';
+        const source = message.source || 'auto';
+        const resp = await translateDriver({ word: text, target, source, context: message.context });
+
+        sendResponse({ success: true, result: resp });
+      } catch (err) {
+        console.error('background translate failed', err);
         sendResponse({ success: false, error: String(err) });
       }
     })();
