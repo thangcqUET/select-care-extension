@@ -204,10 +204,22 @@ export class CommentInput {
       return;
     }
 
-    // For custom events, we need to manually add the character to the textarea
+    // For custom events, insert the character at the caret/selection
     if (!(keyData instanceof KeyboardEvent) && key.length === 1 && !ctrlKey && !metaKey && !altKey) {
-      textarea.value += key;
-      this.options.onCommentChange?.(textarea.value);
+      try {
+        const start = typeof textarea.selectionStart === 'number' ? textarea.selectionStart : textarea.value.length;
+        const end = typeof textarea.selectionEnd === 'number' ? textarea.selectionEnd : start;
+        const newVal = textarea.value.slice(0, start) + key + textarea.value.slice(end);
+        textarea.value = newVal;
+        // restore caret after insertion
+        const caretPos = (start || 0) + key.length;
+        try { textarea.focus(); textarea.selectionStart = textarea.selectionEnd = caretPos; } catch (e) { /* ignore */ }
+        this.options.onCommentChange?.(textarea.value);
+      } catch (e) {
+        // fallback to append if anything goes wrong
+        textarea.value += key;
+        this.options.onCommentChange?.(textarea.value);
+      }
     }
   }
 

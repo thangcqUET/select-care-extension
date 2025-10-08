@@ -5,6 +5,7 @@ import { fetchDictionary } from '../../api/dictionary';
 type Props = {
   selectedText?: string;
   onEnsureParts?: (parts: string[]) => void;
+  shadowRoot?: ShadowRoot;
 };
 
 type DictionaryEntry = any;
@@ -45,9 +46,10 @@ type MeaningProps = {
   onGenerateImage?: (pos: string, index: number) => void;
   onRegisterDef?: (el: HTMLTextAreaElement | null) => void;
   onRegisterMeaning?: (el: HTMLElement | null) => void;
+  onRegisterExample?: (el: HTMLTextAreaElement | null) => void;
 };
 
-const MeaningItem: React.FC<MeaningProps> = ({ pos, index, title, definition = '', example = '', expanded = false, marked = false, onToggleExpand, onToggleMark, onChange, onAttachImage, onGenerateImage, onRegisterDef, onRegisterMeaning }) => {
+const MeaningItem: React.FC<MeaningProps> = ({ pos, index, title, definition = '', example = '', expanded = false, marked = false, onToggleExpand, onToggleMark, onChange, onAttachImage, onGenerateImage, onRegisterDef, onRegisterMeaning, onRegisterExample }) => {
   const [localExpanded, setLocalExpanded] = useState<boolean>(expanded);
   useEffect(() => { setLocalExpanded(expanded); }, [expanded]);
 
@@ -60,7 +62,11 @@ const MeaningItem: React.FC<MeaningProps> = ({ pos, index, title, definition = '
     <div className={`meaning ${localExpanded ? 'expanded' : ''}`} data-pos={pos} data-index={index} ref={(el) => { if (onRegisterMeaning) onRegisterMeaning(el); }}>
       <div className="title">
         <div className="left" onClick={handleToggle} style={{ cursor: 'pointer' }}>
-          <div className="title-text" title={title || definition}>{title || (definition ? definition.split('\n')[0] : '')}</div>
+          {/* Prefer showing the current definition's first line as the title if available; otherwise fall back to provided title */}
+          {(() => {
+            const display = (definition && definition.toString().trim().length) ? definition.split('\n')[0] : (title || '');
+            return <div className="title-text" title={display}>{display}</div>;
+          })()}
         </div>
         <div className="right">
           <span className="mark-wrap">
@@ -74,7 +80,7 @@ const MeaningItem: React.FC<MeaningProps> = ({ pos, index, title, definition = '
   <textarea className="form-input" rows={3} value={definition} onChange={(e) => onChange && onChange({ definition: e.target.value })} ref={(el) => { if (onRegisterDef) onRegisterDef(el as HTMLTextAreaElement | null); }} />
         {example ? <>
           <div className="small">Example</div>
-          <textarea className="form-input" rows={2} value={example} onChange={(e) => onChange && onChange({ example: e.target.value })} />
+          <textarea className="form-input" rows={2} value={example} onChange={(e) => onChange && onChange({ example: e.target.value })} ref={(el) => { if (onRegisterExample) onRegisterExample(el as HTMLTextAreaElement | null); }} />
         </> : (
           <button className="form-button small" onClick={(ev) => { ev.preventDefault(); onChange && onChange({ example: ' ' }); /* parent's effect will focus */ }}>Add example</button>
         )}
@@ -99,6 +105,7 @@ const Tabs: React.FC<{
   onAttachImage?: (pos: string, idx: number) => void; 
   onGenerateImage?: (pos: string, idx: number) => void; 
   onRegisterDef?: (pos: string, idx: number, el: HTMLTextAreaElement | null) => void; 
+  onRegisterExample?: (pos: string, idx: number, el: HTMLTextAreaElement | null) => void; 
   onRegisterMeaning?: (pos: string, idx: number, el: HTMLElement | null) => void; 
   onRegisterWrap?: (pos: string, el: HTMLElement | null) => void }> = (
     { 
@@ -113,6 +120,7 @@ const Tabs: React.FC<{
       onAttachImage, 
       onGenerateImage, 
       onRegisterDef, 
+      onRegisterExample, 
       onRegisterMeaning, 
       onRegisterWrap 
     }) => {
@@ -142,8 +150,9 @@ const Tabs: React.FC<{
                     onChange={(fields) => onChangeMeaning && onChangeMeaning(p, i, fields)}
                     onAttachImage={() => onAttachImage && onAttachImage(p, i)}
                     onGenerateImage={() => onGenerateImage && onGenerateImage(p, i)}
-                    onRegisterDef={(el) => onRegisterDef && onRegisterDef(p, i, el)}
-                    onRegisterMeaning={(el) => onRegisterMeaning && onRegisterMeaning(p, i, el)}
+                                      onRegisterDef={(el) => onRegisterDef && onRegisterDef(p, i, el)}
+                                      onRegisterMeaning={(el) => onRegisterMeaning && onRegisterMeaning(p, i, el)}
+                                      onRegisterExample={(el) => onRegisterExample && onRegisterExample(p, i, el)}
                   />
                 )):<></>}
               </div>
@@ -183,24 +192,38 @@ const SynList: React.FC<{ syns: string[]; ants: string[] }> = ({ syns, ants }) =
 };
 
 // React implementation: fetch dictionary, optionally detect language, and populate state
-const LearnInput: React.FC<Props> = ({ selectedText }) => {
+// Expose an imperative API so the host (FormPopup) can ask whether the learn UI is focused
+// and dispatch synthesized keystrokes into the currently focused definition textarea.
+const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
+  const { selectedText, shadowRoot } = props;
   useEffect(() => {
   }, []);
   // registry for definition textarea elements keyed by `${pos}:${index}`
   const defRefs = React.useRef<Map<string, HTMLTextAreaElement | null>>(new Map());
+  // registry for example textarea elements keyed by `${pos}:${index}`
+  const exampleRefs = React.useRef<Map<string, HTMLTextAreaElement | null>>(new Map());
   // registry for meaning elements and wrap containers
   const wrapRefs = React.useRef<Map<string, HTMLElement | null>>(new Map());
   const meaningRefs = React.useRef<Map<string, HTMLElement | null>>(new Map());
+  // desired caret positions to restore after a state update (keyed by `${pos}:${index}`)
+  const caretRestoreRef = React.useRef<Map<string, number>>(new Map());
   // remember the last toggled meaning so we can scroll after DOM update
   const lastToggled = React.useRef<{ pos: string; idx: number } | null>(null);
 
   // register definition textarea refs
   const handleRegisterDef = (pos: string, idx: number, el: HTMLTextAreaElement | null) => {
+    console.debug("register def", { pos, idx, el });
     try {
       defRefs.current.set(`${pos}:${idx}`, el);
     } catch (e) {
       // ignore
     }
+  };
+
+  const handleRegisterExample = (pos: string, idx: number, el: HTMLTextAreaElement | null) => {
+    try {
+      exampleRefs.current.set(`${pos}:${idx}`, el);
+    } catch (e) { /* ignore */ }
   };
 
   const handleCustom = (pos: string) => {
@@ -551,6 +574,130 @@ const LearnInput: React.FC<Props> = ({ selectedText }) => {
     }
   }, [meanings]);
 
+  // After meanings update, restore caret positions requested by dispatchKeyEvent
+  React.useLayoutEffect(() => {
+    try {
+      for (const [key, pos] of caretRestoreRef.current) {
+        // Try definition refs first, then example refs
+        let el = defRefs.current.get(key) || null;
+        if (!el) el = exampleRefs.current.get(key) || null;
+        if (el) {
+          try {
+            // Focus and restore caret to the requested position
+            el.focus();
+            el.selectionStart = el.selectionEnd = pos;
+            // ensure element is visible
+            try { el.scrollIntoView({ block: 'nearest' }); } catch {}
+          } catch (e) { /* ignore per-element errors */ }
+        }
+      }
+    } catch (e) {
+      // ignore
+    } finally {
+      caretRestoreRef.current.clear();
+    }
+  }, [meanings]);
+
+  // Imperative handle: expose isFocused() and dispatchKeyEvent(...) to host
+  React.useImperativeHandle(ref, () => ({
+    isFocused: () => {
+      try {
+        let active = shadowRoot ? (shadowRoot.activeElement as HTMLElement | null) : document.activeElement as HTMLElement | null;
+        if (!active) return false;
+        // if active element is inside the shadowRoot, re-resolve it to the main document
+        // check registered definition textareas first
+        for (const [, el] of defRefs.current) {
+          if (!el) continue;
+          if (el.contains(active)) return true;
+        }
+        console.debug("not a def");
+        // check if active element is inside any registered wrap or meaning elements
+        for (const [, wrap] of wrapRefs.current) {
+          if (!wrap) continue;
+          if (wrap.contains(active)) return true;
+        }
+        console.debug("not a wrap");
+        for (const [, meaningEl] of meaningRefs.current) {
+          if (!meaningEl) continue;
+          if (meaningEl.contains(active)) return true;
+        }
+        console.debug("not a meaning");
+      } catch (e) {
+        // ignore
+      }
+      return false;
+    },
+    dispatchKeyEvent: (key: string, options: { ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean } = {}) => {
+      try {
+        const active = shadowRoot ? (shadowRoot.activeElement as HTMLElement | null) : document.activeElement as HTMLElement | null;
+        if (!active) return;
+        // Determine whether active element is a definition or example textarea
+        let focusedDefKey: string | null = null;
+        for (const [k, el] of defRefs.current) {
+          if (!el) continue;
+          if (el === active) { focusedDefKey = k; break; }
+        }
+        let focusedExampleKey: string | null = null;
+        for (const [k, el] of exampleRefs.current) {
+          if (!el) continue;
+          if (el === active) { focusedExampleKey = k; break; }
+        }
+
+        const noModifiers = !options.ctrlKey && !options.metaKey && !options.altKey;
+        if (key.length === 1 && noModifiers) {
+          try {
+            if (focusedDefKey) {
+              const [pos, idxStr] = focusedDefKey.split(':');
+              const idx = parseInt(idxStr || '0', 10);
+              if (!pos || Number.isNaN(idx)) return;
+              const textarea = defRefs.current.get(focusedDefKey);
+              if (!textarea) return;
+              const start = typeof textarea.selectionStart === 'number' ? textarea.selectionStart : (textarea.value || '').length;
+              const end = typeof textarea.selectionEnd === 'number' ? textarea.selectionEnd : start;
+              setMeanings((prev) => {
+                const next = { ...prev };
+                const list = next[pos] ? [...next[pos]] : [];
+                if (idx < 0 || idx >= list.length) return prev;
+                const current = list[idx] || { definition: '' };
+                const curDef = current.definition || '';
+                const newDef = curDef.slice(0, start) + key + curDef.slice(end);
+                list[idx] = { ...current, definition: newDef };
+                next[pos] = list;
+                try { caretRestoreRef.current.set(focusedDefKey!, (start || 0) + key.length); } catch (e) { /* ignore */ }
+                return next;
+              });
+            } else if (focusedExampleKey) {
+              const [pos, idxStr] = focusedExampleKey.split(':');
+              const idx = parseInt(idxStr || '0', 10);
+              if (!pos || Number.isNaN(idx)) return;
+              const textarea = exampleRefs.current.get(focusedExampleKey);
+              if (!textarea) return;
+              const start = typeof textarea.selectionStart === 'number' ? textarea.selectionStart : (textarea.value || '').length;
+              const end = typeof textarea.selectionEnd === 'number' ? textarea.selectionEnd : start;
+              setMeanings((prev) => {
+                const next = { ...prev };
+                const list = next[pos] ? [...next[pos]] : [];
+                if (idx < 0 || idx >= list.length) return prev;
+                const current = list[idx] || { example: '' };
+                const curEx = current.example || '';
+                const newEx = curEx.slice(0, start) + key + curEx.slice(end);
+                list[idx] = { ...current, example: newEx };
+                next[pos] = list;
+                try { caretRestoreRef.current.set(focusedExampleKey!, (start || 0) + key.length); } catch (e) { /* ignore */ }
+                return next;
+              });
+            }
+            // caret restoration will be handled by layout effect after meanings update
+          } catch (e) {
+            // ignore
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }), [defRefs, wrapRefs, meaningRefs, setMeanings, meanings]);
+
   // play phonetic audio with unified error handling and inline message
   const handlePlayAudio = (audioUrl?: string) => {
     if (!audioUrl) return;
@@ -584,7 +731,7 @@ const LearnInput: React.FC<Props> = ({ selectedText }) => {
         </div>
       ) : null}
       <Badges parts={parts} active={activePart} onSelect={(p) => setActivePart(p)} />
-      <Tabs parts={parts} active={activePart} meanings={meanings} loading={loading}
+    <Tabs parts={parts} active={activePart} meanings={meanings} loading={loading}
           onCustom={handleCustom}
               onToggleExpand={(pos, idx) => {
                   // record which meaning was toggled so a layout effect can scroll after render
@@ -625,14 +772,15 @@ const LearnInput: React.FC<Props> = ({ selectedText }) => {
               const prompt = `${m?.definition || ''} ${m?.example || ''}`;
               chrome.runtime.sendMessage({ action: 'generateImage', prompt, pos, index: idx });
           }}
-          onRegisterDef={handleRegisterDef}
-          onRegisterWrap={(pos, el) => { wrapRefs.current.set(pos, el); }}
-          onRegisterMeaning={(pos, idx, el) => { meaningRefs.current.set(`${pos}:${idx}`, el); }}
+      onRegisterDef={handleRegisterDef}
+      onRegisterExample={handleRegisterExample}
+      onRegisterWrap={(pos, el) => { wrapRefs.current.set(pos, el); }}
+      onRegisterMeaning={(pos, idx, el) => { meaningRefs.current.set(`${pos}:${idx}`, el); }}
       />
       <SynList syns={syns} ants={ants} />
   {/* skeleton loader is now rendered inside the active tab by Tabs */}
     </div>
   );
-};
+});
 
 export default LearnInput;

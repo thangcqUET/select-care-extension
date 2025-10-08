@@ -1,10 +1,9 @@
-import { TagInput } from './TagInput';
-import { CommentInput } from './CommentInput';
 import { convertToSelection } from '../data_mapper';
 import { isUserTyping, debounce } from '../utils';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import LearnInput from './learn/LearnInput';
+import { NoteInput } from './note/NoteInput';
 
 export class FormPopup {
   private container: HTMLDivElement;
@@ -12,6 +11,8 @@ export class FormPopup {
   private isVisible: boolean = false;
   // React root for the learn UI so we can unmount later
   private _learnReactRoot?: ReturnType<typeof createRoot>;
+  // ref object passed to LearnInput for imperative methods
+  private _learnRef?: React.RefObject<any>;
   // optional implementation hook set when the learn UI is created
   // private _ensurePartsImpl?: (parts: string[]) => void;
   // Public API: ensure the popup has tabs/badges for the given parts
@@ -26,8 +27,7 @@ export class FormPopup {
   private resizeHandler?: () => void;
   private actionType: string;
   private selectedText: string;
-  private tagInput?: TagInput; // Tag input component instance
-  private commentInput?: CommentInput; // Comment input component instance
+  private noteInput?: NoteInput; // Note input component instance
 
   constructor(actionType: string, text: string) {
     this.actionType = actionType;
@@ -345,42 +345,54 @@ export class FormPopup {
     this.shadowRoot.appendChild(popup);
     // Add keyboard event listener to prevent shortcuts when typing
     popup.addEventListener("keydown", (event: KeyboardEvent) => {
+      console.debug('FormPopup keydown:', event.key);
       if (!isUserTyping()) return;
-
-      // Check if the user is typing in comment input or tag input
-      let typingIn = 0b00;
-      const commentCode = 0b01;
-      const tagCode = 0b10;
-      if (this.commentInput && this.commentInput.isFocused()) {
-        typingIn |= commentCode;
-      }
-      if (this.tagInput && this.tagInput.isFocused()) {
-        typingIn |= tagCode;
-      }
-
+      console.debug('User is typing, handling key event in FormPopup');
+      // Check if the user is typing in note input
+      const isNoteInputFocused = this.noteInput?.isFocused() ?? false;
+      
       // Check if this is a single character key (we handle these locally)
       const isSingleKeyShortcut = event.key.length === 1 && 
                                 !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
+      console.debug('isSingleKeyShortcut:', isSingleKeyShortcut, 'isNoteInputFocused:', isNoteInputFocused);
       if (isSingleKeyShortcut) {
-        // Stop the event from reaching the webpage's shortcut handlers
-        event.preventDefault();
-        event.stopPropagation();
+        // For note: preventDefault so we control insertion and forward to NoteInput
+        console.debug("actionType:", this.actionType);
+        if (this.actionType === 'note') {
+          event.preventDefault();
+          event.stopPropagation();
+          if (this.noteInput && isNoteInputFocused) {
+            this.noteInput.dispatchKeyEvent(event.key, {
+              ctrlKey: event.ctrlKey,
+              metaKey: event.metaKey,
+              altKey: event.altKey,
+              shiftKey: event.shiftKey
+            });
+          }
+          return;
+        }
 
-        // Forward the keystroke to the appropriate input helper when relevant
-        if (this.actionType === 'note' && this.tagInput && (typingIn & tagCode) === tagCode) {
-          this.tagInput.dispatchKeyEvent(event.key, {
-            ctrlKey: event.ctrlKey,
-            metaKey: event.metaKey,
-            altKey: event.altKey,
-            shiftKey: event.shiftKey
-          });
-        } else if (this.actionType === 'note' && this.commentInput && (typingIn & commentCode) === commentCode) {
-          this.commentInput.dispatchKeyEvent(event.key, {
-            ctrlKey: event.ctrlKey,
-            metaKey: event.metaKey,
-            altKey: event.altKey,
-            shiftKey: event.shiftKey
-          });
+        if (this.actionType === 'learn') {
+          // Allow native typing to insert characters into the React inputs; stop propagation
+          // so the page doesn't also run shortcuts.
+          event.preventDefault();
+          event.stopPropagation();
+          try {
+            const learnRef = this._learnRef;
+            console.debug('learnRef is forced:', learnRef?.current?.isFocused());
+            if (learnRef && typeof learnRef.current?.isFocused === 'function' && learnRef.current.isFocused()) {
+              if (typeof learnRef.current?.dispatchKeyEvent === 'function') {
+                // dispatchKeyEvent is optional — native typing usually suffices.
+                console.debug('LearnInput is focused, dispatching key event:', event.key);
+                learnRef.current.dispatchKeyEvent(event.key, {
+                  ctrlKey: event.ctrlKey,
+                  metaKey: event.metaKey,
+                  altKey: event.altKey,
+                  shiftKey: event.shiftKey
+                });
+              }
+            }
+          } catch (e) { /* ignore */ }
         }
       }
     }, true); // Use capture phase to catch events early
@@ -426,20 +438,12 @@ export class FormPopup {
   }
 
   private createNoteInputComponent(): HTMLElement {
-    const container = document.createElement('div');
+    this.noteInput = new NoteInput({
+      onSave: () => this.handleSave()
+    });
+    
+    const container = this.noteInput.getElement();
     container.id = 'mainInput';
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
-    container.style.gap = '12px';
-    
-    // Create tags section
-    const tagsSection = this.createTagsSection();
-    
-    // Create comment section
-    const commentSection = this.createCommentSection();
-    
-    container.appendChild(tagsSection);
-    container.appendChild(commentSection);
     
     return container;
   }
@@ -460,13 +464,10 @@ export class FormPopup {
     // Mount the React component into the host
     try {
       this._learnReactRoot = createRoot(host);
+      // create a proper React ref so the forwarded ref is assigned
+      this._learnRef = React.createRef();
       this._learnReactRoot.render(
-        React.createElement(LearnInput, {
-          selectedText: this.selectedText,
-          // onEnsureParts: (parts: string[]) => {
-          //   try { this.ensureParts(parts); } catch (e) { /* ignore */ }
-          // }
-        })
+        React.createElement(LearnInput, { selectedText: this.selectedText, ref: this._learnRef, shadowRoot: this.shadowRoot })
       );
     } catch (err) {
       // If React mounting fails, fall back to a simple message so the UI remains usable
@@ -480,82 +481,6 @@ export class FormPopup {
   }
 
   // (learn UI moved to React) expand/collapse logic previously handled here
-
-  private createTagsSection(): HTMLElement {
-    const tagsSection = document.createElement('div');
-    tagsSection.className = 'tags-section';
-    tagsSection.style.marginBottom = '0'; // Remove margin since we use gap in container
-    
-    // Add section header
-    const sectionHeader = document.createElement('div');
-    sectionHeader.style.display = 'flex';
-    sectionHeader.style.alignItems = 'center';
-    sectionHeader.style.gap = '6px';
-    sectionHeader.style.marginBottom = '8px';
-    
-    const sectionIcon = document.createElement('span');
-    sectionIcon.textContent = '🏷️';
-    sectionIcon.style.fontSize = '14px';
-    
-    const tagsLabel = document.createElement('label');
-    tagsLabel.textContent = 'Tags';
-    tagsLabel.style.fontSize = '12px';
-    tagsLabel.style.fontWeight = '600';
-    tagsLabel.style.color = '#000';
-    tagsLabel.style.margin = '0';
-    
-    sectionHeader.appendChild(sectionIcon);
-    sectionHeader.appendChild(tagsLabel);
-    
-    this.tagInput = new TagInput({
-      placeholder: 'Type tag name and press Enter...',
-      maxTags: 10,
-      allowDuplicates: false,
-  onTagsChange: () => {},
-  onInputChange: () => {},
-      onInputFocus: () => {},
-      onInputBlur: () => {},
-      onEnterEmpty: () => {
-        // Check if there's comment text or tags before auto-saving
-        const commentText = this.commentInput?.getValue()?.trim() || '';
-        const tags = this.tagInput?.getTags() || [];
-        if (tags.length > 0 || commentText.length > 0) this.handleSave();
-      }
-    });
-    
-    tagsSection.appendChild(sectionHeader);
-    tagsSection.appendChild(this.tagInput.getElement());
-    
-    return tagsSection;
-  }
-
-  private createCommentSection(): HTMLElement {
-    const commentSection = document.createElement('div');
-    commentSection.className = 'comment-section';
-    
-    // Add section header
-    const sectionHeader = document.createElement('div');
-    sectionHeader.style.display = 'flex';
-    sectionHeader.style.alignItems = 'center';
-    sectionHeader.style.gap = '6px';
-    sectionHeader.style.marginBottom = '8px';
-    
-    // Create comment input component
-    this.commentInput = new CommentInput({
-      placeholder: 'Add your notes or comments here...',
-      showButton: true,
-      buttonText: '+ Add Comment',
-  onCommentChange: () => {},
-      onCommentFocus: () => {},
-      onCommentBlur: () => {},
-      onSave: () => { this.handleSave(); }
-    });
-    
-    commentSection.appendChild(sectionHeader);
-    commentSection.appendChild(this.commentInput.getElement());
-    
-    return commentSection;
-  }
 
   private handleOutsideClick = (event: Event) => {
     if (!this.container.contains(event.target as Node)) {
@@ -607,20 +532,19 @@ export class FormPopup {
     // Get the main input value
     let inputValue = '';
     if (this.actionType === 'note') {
-      // For tags, get from TagInput component
-      if (this.tagInput) {
-        const tags = this.tagInput.getTags();
+      // Get data from NoteInput component
+      if (this.noteInput) {
+        const noteData = this.noteInput.getValue();
         // Add hidden function tag for note
-        const allTags = ['fn_note', ...(tags.length > 0 ? tags : ['general'])];
+        const allTags = ['fn_note', ...noteData.tags];
         data.tags = allTags;
-        data.tagCount = tags.length; // Don't count the hidden tag
+        data.tagCount = noteData.tagCount;
+        data.comment = noteData.comment;
       } else {
         data.tags = ['fn_note', 'general'];
         data.tagCount = 0;
+        data.comment = '';
       }
-      
-      // Get comment text from CommentInput component
-      data.comment = this.commentInput?.getValue()?.trim() || '';
     } else {
       // For other inputs, get from main input
       const mainInput = this.shadowRoot.getElementById('mainInput') as HTMLInputElement;
@@ -725,8 +649,8 @@ export class FormPopup {
 
     // Focus the appropriate input (small delay to allow animation to start)
     setTimeout(() => {
-      if (this.actionType === 'note' && this.tagInput) {
-        this.tagInput.focus();
+      if (this.actionType === 'note' && this.noteInput) {
+        this.noteInput.focus();
       } else {
         const input = this.shadowRoot.getElementById('mainInput') as HTMLElement;
         if (input) {
@@ -814,13 +738,9 @@ export class FormPopup {
           document.body.removeChild(this.container);
        }
        // Clean up components
-       if (this.tagInput) {
-         this.tagInput.destroy();
-         this.tagInput = undefined;
-       }
-       if (this.commentInput) {
-         this.commentInput.destroy();
-         this.commentInput = undefined;
+       if (this.noteInput) {
+         this.noteInput.destroy();
+         this.noteInput = undefined;
        }
      }, 300);
     }
