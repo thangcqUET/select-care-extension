@@ -578,18 +578,33 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
   React.useLayoutEffect(() => {
     try {
       for (const [key, pos] of caretRestoreRef.current) {
-        // Try definition refs first, then example refs
-        let el = defRefs.current.get(key) || null;
-        if (!el) el = exampleRefs.current.get(key) || null;
-        if (el) {
-          try {
-            // Focus and restore caret to the requested position
-            el.focus();
-            el.selectionStart = el.selectionEnd = pos;
-            // ensure element is visible
-            try { el.scrollIntoView({ block: 'nearest' }); } catch {}
-          } catch (e) { /* ignore per-element errors */ }
-        }
+        try {
+          if (key.startsWith('def:')) {
+            const raw = key.slice(4);
+            const el = defRefs.current.get(raw) || null;
+            if (el) {
+              el.focus();
+              el.selectionStart = el.selectionEnd = pos;
+              try { el.scrollIntoView({ block: 'nearest' }); } catch {}
+            }
+          } else if (key.startsWith('ex:')) {
+            const raw = key.slice(3);
+            const el = exampleRefs.current.get(raw) || null;
+            if (el) {
+              el.focus();
+              el.selectionStart = el.selectionEnd = pos;
+              try { el.scrollIntoView({ block: 'nearest' }); } catch {}
+            }
+          } else {
+            // fallback: try definition then example
+            const el = defRefs.current.get(key) || exampleRefs.current.get(key) || null;
+            if (el) {
+              el.focus();
+              el.selectionStart = el.selectionEnd = pos;
+              try { el.scrollIntoView({ block: 'nearest' }); } catch {}
+            }
+          }
+        } catch (e) { /* ignore per-entry errors */ }
       }
     } catch (e) {
       // ignore
@@ -663,7 +678,7 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
                 const newDef = curDef.slice(0, start) + key + curDef.slice(end);
                 list[idx] = { ...current, definition: newDef };
                 next[pos] = list;
-                try { caretRestoreRef.current.set(focusedDefKey!, (start || 0) + key.length); } catch (e) { /* ignore */ }
+                try { caretRestoreRef.current.set(`def:${focusedDefKey!}`, (start || 0) + key.length); } catch (e) { /* ignore */ }
                 return next;
               });
             } else if (focusedExampleKey) {
@@ -683,7 +698,7 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
                 const newEx = curEx.slice(0, start) + key + curEx.slice(end);
                 list[idx] = { ...current, example: newEx };
                 next[pos] = list;
-                try { caretRestoreRef.current.set(focusedExampleKey!, (start || 0) + key.length); } catch (e) { /* ignore */ }
+                try { caretRestoreRef.current.set(`ex:${focusedExampleKey!}`, (start || 0) + key.length); } catch (e) { /* ignore */ }
                 return next;
               });
             }
