@@ -545,6 +545,23 @@ export class FormPopup {
         data.tagCount = 0;
         data.comment = '';
       }
+    } else if (this.actionType === 'learn') {
+      // For learn, input handled in React component; mainInput is just a container
+      inputValue = ''; // Not used directly here
+      // Try to retrieve structured learn data from the React component
+      try {
+        const learnRef = this._learnRef as React.RefObject<any> | undefined;
+        if (learnRef && learnRef.current && typeof learnRef.current.getData === 'function') {
+          const learnData = learnRef.current.getData();
+          if (learnData) {
+            // Map to our expected top-level keys for saving
+            data.source_language = learnData.source_language;
+            data.translation_context = learnData.translation_context;
+            data.pieces = learnData.pieces;
+            data.tags = ['fn_learn'];
+          }
+        }
+      } catch (e) { /* ignore if not available */ }
     } else {
       // For other inputs, get from main input
       const mainInput = this.shadowRoot.getElementById('mainInput') as HTMLInputElement;
@@ -554,13 +571,6 @@ export class FormPopup {
     // Set data based on action type
     switch (this.actionType) {
       case 'learn':
-        // Prefer the selected values from the learn UI selects if available
-        const srcSel = (this as any).__learnSourceSelect as HTMLSelectElement | undefined;
-        const tgtSel = (this as any).__learnTargetSelect as HTMLSelectElement | undefined;
-        data.targetLanguage = (tgtSel?.value && tgtSel.value !== 'auto') ? tgtSel.value : (inputValue || 'English');
-        data.sourceLanguage = (srcSel?.value) ? srcSel.value : 'auto';
-        // Add hidden function tag for learn
-        data.tags = ['fn_learn'];
         break;
       case 'note':
         // Tags already handled above with fn_note

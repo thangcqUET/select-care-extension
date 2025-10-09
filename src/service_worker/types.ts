@@ -3,7 +3,7 @@
 export type SelectionType = 'learn' | 'note' | 'chat';
 
 
-export type BaseSelection = {
+export type CoreSelection = {
   selection_id: string;
   text: string;
   context: Record<string, any>;
@@ -14,18 +14,28 @@ export type BaseSelection = {
 }
 
 // Define specific data types for each selection type
-export interface LearnSpecificData extends BaseSelection {
-  image?: string;
-  pieces: {
-    language: string;
-    lang_context: string;
-  };
+export interface LearnSpecificData extends CoreSelection {
+  source_language: string;
+  translation_context: string | null;
+  pieces: [
+    {
+      target_language: string;
+      definition: string | null;
+      translation: string | null;
+      example: string | null;
+      part_of_speech: string | null;
+      phonetics_text: string | null;
+      phonetics_audio: string | null;
+      image_url: string | null;
+    }
+  ]
+    
 }
 
-export interface NoteSpecificData extends BaseSelection {
+export interface NoteSpecificData extends CoreSelection {
 }
 
-export interface ChatSpecificData extends BaseSelection {
+export interface ChatSpecificData extends CoreSelection {
   chat_id: string;
 }
 

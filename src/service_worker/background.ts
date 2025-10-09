@@ -129,14 +129,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'note' || message.action === 'learn' || message.action === 'chat') {
     console.log('Received selection:', message.data);
     let selection_id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-    // Create selection with new data structure
-    const selection = {
+    // Build base selection fields common to all types
+    const baseSelection: any = {
       selection_id: selection_id,
       text: message.data.text,
       context: {
-        sourceUrl: message.data.context.sourceUrl || 'unknown',
-        // ...(message.data.targetLanguage && { targetLanguage: message.data.targetLanguage }),
-        // ...(message.data.question && { question: message.data.question })
+        sourceUrl: (message.data.context && message.data.context.sourceUrl) || 'unknown'
       },
       tags: message.data.tags || [],
       type: message.action,
@@ -145,6 +143,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         timestamp: new Date().toISOString()
       }
     };
+
+    // If this is a learn selection, include learn-specific fields following LearnSpecificData
+    let selection: any;
+    if (message.action === 'learn') {
+      selection = {
+        ...baseSelection,
+        // ensure snake_case names as per LearnSpecificData
+        source_language: message.data.source_language || message.data.sourceLanguage || 'auto',
+        translation_context: (message.data.translation_context !== undefined) ? message.data.translation_context : (message.data.translationContext || null),
+        pieces: Array.isArray(message.data.pieces) ? message.data.pieces.map((p: any) => ({
+          target_language: p.target_language || p.targetLanguage || 'en',
+          definition: (p.definition !== undefined) ? p.definition : null,
+          translation: (p.translation !== undefined) ? p.translation : null,
+          example: (p.example !== undefined) ? p.example : null,
+          part_of_speech: p.part_of_speech || p.partOfSpeech || null,
+          phonetics_text: p.phonetics_text || p.phoneticsText || null,
+          phonetics_audio: p.phonetics_audio || p.phoneticsAudio || null,
+          image_url: p.image_url || p.imageUrl || null
+        })) : []
+      };
+    } else {
+      // note/chat keep the previous, simpler shape
+      selection = baseSelection;
+    }
     
     // Save to IndexedDB
     selectionDB.saveSelection(selection).then(() => {

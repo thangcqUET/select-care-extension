@@ -711,7 +711,46 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
         // ignore
       }
     }
-  }), [defRefs, wrapRefs, meaningRefs, setMeanings, meanings]);
+    ,
+    // Return current learn data so the host can persist it
+    getData: () => {
+      try {
+        // Build pieces: flatten meanings by part
+        const pieces: Array<any> = [];
+        for (const pos of parts) {
+          const list = (meanings && meanings[pos]) || [];
+          for (const m of list) {
+            // just push marked meanings
+            // definition is required when sourceLang === targetLang
+            // translation is required when sourceLang !== targetLang
+            if (!m || (!m.marked)) continue;
+            let definition=null;
+            let translation=null;
+            if (sourceLang !== targetLang) translation = m.definition || '';
+            if (sourceLang === targetLang) definition = m.definition || '';
+            pieces.push({
+              target_language: targetLang,
+              definition: definition,
+              translation: translation,
+              example: (m && m.example) ? m.example : null,
+              part_of_speech: pos || null,
+              phonetics_text: phonetic?.text ?? null,
+              phonetics_audio: phonetic?.audio ?? null,
+              image_url: (m && (m.image_url || m.image)) ? (m.image_url || m.image) : null
+            });
+          }
+        }
+
+        return {
+          source_language: sourceLang || 'auto',
+          translation_context: selectedText || null,
+          pieces
+        };
+      } catch (e) {
+        return { source_language: sourceLang || 'auto', translation_context: selectedText || null, pieces: [] };
+      }
+    }
+  }), [defRefs, wrapRefs, meaningRefs, setMeanings, meanings, parts, targetLang, phonetic, sourceLang, selectedText]);
 
   // play phonetic audio with unified error handling and inline message
   const handlePlayAudio = (audioUrl?: string) => {
