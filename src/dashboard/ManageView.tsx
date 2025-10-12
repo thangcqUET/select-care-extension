@@ -108,7 +108,7 @@ const ManageView: React.FC<Props> = ({
 
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-2">Tags</label>
-          <div className="flex flex-wrap gap-1">
+          <div className="max-h-24 overflow-y-auto pr-2 flex flex-wrap gap-1">
             {allTags.map(tag => (
               <button
                 key={tag}

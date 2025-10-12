@@ -1,3 +1,5 @@
+import cleanTags from './utils';
+
 export const genLearningQuizlet = (items: any[], opts: any) => {
   // Mirror Anki's granular field handling so Quizlet UI can be identical
   const pickPiece = (s: any) => {
@@ -12,7 +14,7 @@ export const genLearningQuizlet = (items: any[], opts: any) => {
   };
 
   // build a mapping from field id -> value for this item
-  const buildFieldMap = (s: any) => {
+    const buildFieldMap = (s: any) => {
     const piece = pickPiece(s);
     const map: Record<string, any> = {
       selectionText: s.selectionText || s.text || s.front || '',
@@ -25,7 +27,7 @@ export const genLearningQuizlet = (items: any[], opts: any) => {
       target_language: piece?.target_language || '',
       front: s.front || s.text || '',
       back: s.back || s.translation || piece?.translation || '',
-      tags: (s.tags || []).join(','),
+      tags: (cleanTags(s.tags) || []).join(','),
     };
     return map;
   };

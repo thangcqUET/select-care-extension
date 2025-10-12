@@ -1,10 +1,12 @@
+import cleanTags from './utils';
+
 export const genNoteNotion = (items: any[], opts: any) => {
   const fmt = opts?.format || 'md';
   if (fmt === 'csv') {
     // CSV: header row then rows with selected fields
     const headers: string[] = [];
     if (opts.includeFields?.text) headers.push('text');
-    if (opts.includeFields?.tags) headers.push('tags');
+  if (opts.includeFields?.tags) headers.push('tags');
   if (opts.includeFields?.comments) headers.push('comments');
 
     const escape = (v: any) => {
@@ -16,7 +18,7 @@ export const genNoteNotion = (items: any[], opts: any) => {
     const rows = items.map((s: any) => {
       const cols: string[] = [];
       if (opts.includeFields?.text) cols.push(escape(s.text || s.body || s.title || ''));
-      if (opts.includeFields?.tags) cols.push(escape((s.tags || []).join(',')));
+      if (opts.includeFields?.tags) cols.push(escape((cleanTags(s.tags) || []).join(',')));
       if (opts.includeFields?.comments) cols.push(escape((s.comments || []).join(' | ')));
       return cols.join(',');
     });
@@ -27,8 +29,8 @@ export const genNoteNotion = (items: any[], opts: any) => {
   return items.map((s: any) => {
     const parts: string[] = [];
     if (opts.includeFields?.text) parts.push(s.text || s.body || s.title || '');
-    if (opts.includeFields?.tags && (s.tags || []).length) parts.push(`Tags: ${(s.tags || []).join(',')}`);
-    if (opts.includeFields?.comments && (s.comments || []).length) parts.push('Comments:\n' + (s.comments || []).map((c: any) => `- ${c}`).join('\n'));
+  if (opts.includeFields?.tags && (s.tags || []).length) parts.push(`Tags: ${(cleanTags(s.tags) || []).join(',')}`);
+  if (opts.includeFields?.comments && (s.comments || []).length) parts.push('Comments:\n' + (s.comments || []).map((c: any) => `- ${c}`).join('\n'));
     return parts.join('\n');
   }).join('\n\n');
 };

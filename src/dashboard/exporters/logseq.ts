@@ -1,3 +1,5 @@
+import cleanTags from './utils';
+
 export const genNoteLogseq = (items: any[], opts: any) => {
   const fmt = opts?.format || 'markdown';
   if (fmt === 'json') {
@@ -14,7 +16,7 @@ export const genNoteLogseq = (items: any[], opts: any) => {
   return items.map((s: any) => {
     const parts: string[] = [];
     if (opts.includeFields?.text) parts.push(s.text || s.body || s.title || '');
-    if (opts.includeFields?.tags && (s.tags || []).length) parts.push(`Tags:: ${(s.tags || []).join(',')}`);
+  if (opts.includeFields?.tags && (s.tags || []).length) parts.push(`Tags:: ${(cleanTags(s.tags) || []).join(',')}`);
     if (opts.includeFields?.comments && (s.comments || []).length) parts.push('Comments:: ' + (s.comments || []).join(' | '));
     return parts.join('\n');
   }).join('\n\n');
