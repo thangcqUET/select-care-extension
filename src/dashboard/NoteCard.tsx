@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { BasedSelection } from '../content_scripts/types';
 
-interface KnowledgeCardProps {
+interface NoteCardProps {
   selection: BasedSelection;
   userStats?: {
     totalSelections: number;
@@ -49,7 +49,7 @@ const gradientOptions: GradientOption[] = [
   }
 ];
 
-const KnowledgeCard: React.FC<KnowledgeCardProps> = ({ selection, userStats }) => {
+const NoteCard: React.FC<NoteCardProps> = ({ selection, userStats }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [selectedGradient, setSelectedGradient] = React.useState<GradientOption>(gradientOptions[0]);
 
@@ -454,4 +454,4 @@ const KnowledgeCard: React.FC<KnowledgeCardProps> = ({ selection, userStats }) =
   );
 };
 
-export default KnowledgeCard;
+export default NoteCard;

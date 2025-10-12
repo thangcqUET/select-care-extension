@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BasedSelection } from '../content_scripts/types';
-import KnowledgeCard from './KnowledgeCard';
+import LearnSelectionItem from './LearnSelectionItem';
+import NoteSelectionItem from './NoteSelectionItem';
 
 const Dashboard: React.FC = () => {
   const [selections, setSelections] = useState<BasedSelection[]>([]);
@@ -131,27 +132,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const formatDate = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString();
-  };
-
-  const getActionIcon = (actionType: string) => {
-    switch (actionType) {
-      case 'learn': return '🌐';
-      case 'note': return '📝';
-      case 'chat': return '🤖';
-      default: return '📄';
-    }
-  };
-
-  const getActionColor = (actionType: string) => {
-    switch (actionType) {
-      case 'learn': return 'bg-blue-100 text-blue-800';
-      case 'note': return 'bg-green-100 text-green-800';
-      case 'chat': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   const getUserStats = () => {
     const today = new Date().toDateString();
@@ -165,18 +145,7 @@ const Dashboard: React.FC = () => {
     };
   };
 
-  function TextWithLineBreaks({ text }: { text: string }) {
-    // Split the text by newline characters and map each segment to a React element
-    const lines = text.split('\n').map((line, index) => (
-      <React.Fragment key={index}>
-        {line}
-        {/* Add a <br /> tag after each line except the last one */}
-        {index < text.split('\n').length - 1 && <br />}
-      </React.Fragment>
-    ));
-
-    return <div>{lines}</div>;
-  }
+  // Note: per-selection UI moved to LearnSelectionItem and NoteSelectionItem
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header - Compact for sidebar */}
@@ -296,133 +265,41 @@ const Dashboard: React.FC = () => {
             </div>
           ) : (
             filteredSelections.map(selection => (
-              <div
-                key={selection.selection_id}
-                className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-gray-200 hover:shadow-md transition-shadow"
-              >
-                {/* Selection Header - Compact */}
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">{getActionIcon(selection.type)}</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getActionColor(selection.type)}`}>
-                      {selection.type.charAt(0).toUpperCase() + selection.type.slice(1)}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-gray-500">
-                      {formatDate(selection.metadata.timestamp)}
-                    </span>
-                    <button
-                      onClick={() => deleteSelection(selection.selection_id)}
-                      className="text-red-400 hover:text-red-600 text-xs px-1 py-0.5 rounded"
-                      title="Delete selection"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-
-                {/* Selected Text */}
-                <div className="mb-2">
-                  <p className="text-sm text-gray-900 leading-relaxed">
-                    <TextWithLineBreaks text={selection.text} />
-                  </p>
-                </div>
-
-                {/* Additional Info */}
-                {selection.context.targetLanguage && (
-                  <div className="mb-2">
-                    <span className="text-xs text-gray-600">Target: {selection.context.targetLanguage}</span>
-                  </div>
-                )}
-
-                {selection.context.question && (
-                  <div className="mb-2">
-                    <p className="text-xs text-gray-600">Q: {selection.context.question}</p>
-                  </div>
-                )}
-
-                {/* Tags - Wrap for narrow sidebar */}
-                <div className="mb-2">
-                  <div className="flex flex-wrap gap-1">
-                    {selection.tags
-                      .filter(tag => !tag.startsWith('fn_'))
-                      .map(tag => (
-                        <span
-                          key={tag}
-                          className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                  </div>
-                </div>
-
-                {/* Comments */}
-                {selection.comments && selection.comments.length > 0 && (
-                  <div className="mb-2">
-                    <button
-                      onClick={() => {
-                        const newExpanded = new Set(expandedComments);
-                        if (newExpanded.has(selection.selection_id)) {
-                          newExpanded.delete(selection.selection_id);
-                        } else {
-                          newExpanded.add(selection.selection_id);
-                        }
-                        setExpandedComments(newExpanded);
-                      }}
-                      className="text-xs text-blue-600 hover:text-blue-800 font-medium mb-1 cursor-pointer bg-transparent border-none p-0"
-                    >
-                      {expandedComments.has(selection.selection_id) ? 'Hide Comments' : 'Show Comments'}
-                    </button>
-                    {expandedComments.has(selection.selection_id) && (
-                      <div className="mt-1">
-                        {selection.comments.map((comment, index) => (
-                          <div key={index} className="text-xs text-gray-700 bg-gray-50 rounded px-2 py-1 mb-1">
-                            <TextWithLineBreaks text={comment} />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Share Card Section */}
-                <div className="mb-2">
-                  <button
-                    onClick={() => {
+              <div key={selection.selection_id}>
+                {selection.type === 'learn' ? (
+                  <LearnSelectionItem
+                    selection={selection as any}
+                    expandedComments={expandedComments.has(selection.selection_id)}
+                    onToggleComments={() => {
+                      const newExpanded = new Set(expandedComments);
+                      if (newExpanded.has(selection.selection_id)) newExpanded.delete(selection.selection_id);
+                      else newExpanded.add(selection.selection_id);
+                      setExpandedComments(newExpanded);
+                    }}
+                    deleteSelection={deleteSelection}
+                    getUserStats={getUserStats}
+                  />
+                ) : (
+                  <NoteSelectionItem
+                    selection={selection}
+                    expandedComments={expandedComments.has(selection.selection_id)}
+                    onToggleComments={() => {
+                      const newExpanded = new Set(expandedComments);
+                      if (newExpanded.has(selection.selection_id)) newExpanded.delete(selection.selection_id);
+                      else newExpanded.add(selection.selection_id);
+                      setExpandedComments(newExpanded);
+                    }}
+                    expandedCard={expandedCards.has(selection.selection_id)}
+                    onToggleCard={() => {
                       const newExpanded = new Set(expandedCards);
-                      if (newExpanded.has(selection.selection_id)) {
-                        newExpanded.delete(selection.selection_id);
-                      } else {
-                        newExpanded.add(selection.selection_id);
-                      }
+                      if (newExpanded.has(selection.selection_id)) newExpanded.delete(selection.selection_id);
+                      else newExpanded.add(selection.selection_id);
                       setExpandedCards(newExpanded);
                     }}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer bg-transparent border-none p-0"
-                  >
-                    {expandedCards.has(selection.selection_id) ? 'Hide Card' : '✨ Generate Share Card'}
-                  </button>
-                  {expandedCards.has(selection.selection_id) && (
-                    <KnowledgeCard 
-                      selection={selection} 
-                      userStats={getUserStats()}
-                    />
-                  )}
-                </div>
-
-                {/* Source URL - Truncated for sidebar */}
-                <div className="text-xs text-gray-500">
-                  <a
-                    href={selection.context.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 truncate block"
-                    title={selection.context.sourceUrl}
-                  >
-                    {selection.context.sourceUrl.replace(/^https?:\/\//, '').substring(0, 40)}...
-                  </a>
-                </div>
+                    deleteSelection={deleteSelection}
+                    getUserStats={getUserStats}
+                  />
+                )}
               </div>
             ))
           )}
