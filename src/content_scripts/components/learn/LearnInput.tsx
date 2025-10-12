@@ -49,7 +49,9 @@ type MeaningProps = {
   onRegisterExample?: (el: HTMLTextAreaElement | null) => void;
 };
 
-const MeaningItem: React.FC<MeaningProps> = ({ pos, index, title, definition = '', example = '', expanded = false, marked = false, onToggleExpand, onToggleMark, onChange, onAttachImage, onGenerateImage, onRegisterDef, onRegisterMeaning, onRegisterExample }) => {
+const MeaningItem: React.FC<MeaningProps> = ({ pos, index, title, definition = '', example = '', expanded = false, marked = false, onToggleExpand, onToggleMark, onChange, 
+  // onAttachImage, onGenerateImage, 
+  onRegisterDef, onRegisterMeaning, onRegisterExample }) => {
   const [localExpanded, setLocalExpanded] = useState<boolean>(expanded);
   useEffect(() => { setLocalExpanded(expanded); }, [expanded]);
 
@@ -84,10 +86,10 @@ const MeaningItem: React.FC<MeaningProps> = ({ pos, index, title, definition = '
         </> : (
           <button className="form-button small" onClick={(ev) => { ev.preventDefault(); onChange && onChange({ example: ' ' }); /* parent's effect will focus */ }}>Add example</button>
         )}
-        <div className="form-actions">
+        {/* <div className="form-actions">
           <button className="form-button" onClick={(e) => { e.preventDefault(); onAttachImage && onAttachImage(pos, index); }}>Add Image</button>
           <button className="form-button primary" onClick={(e) => { e.preventDefault(); onGenerateImage && onGenerateImage(pos, index); }}>Generate Image</button>
-        </div>
+        </div> */}
       </div>
     </div>
   );

@@ -34,7 +34,7 @@ export const exporterMeta: Record<string, any> = {
       { id: 'example', type: 'checkbox', label: 'Example' },
       { id: 'phonetics_text', type: 'checkbox', label: 'Phonetics (text)' },
       { id: 'phonetics_audio', type: 'checkbox', label: 'Phonetics (audio URL)' },
-      { id: 'image_url', type: 'checkbox', label: 'Image URL' },
+      // { id: 'image_url', type: 'checkbox', label: 'Image URL' },
       { id: 'part_of_speech', type: 'checkbox', label: 'Part of speech' },
       { id: 'target_language', type: 'checkbox', label: 'Include target language' },
     ]
@@ -60,7 +60,7 @@ export const exporterMeta: Record<string, any> = {
       { id: 'example', type: 'checkbox', label: 'Example' },
       { id: 'phonetics_text', type: 'checkbox', label: 'Phonetics (text)' },
       { id: 'phonetics_audio', type: 'checkbox', label: 'Phonetics (audio URL)' },
-      { id: 'image_url', type: 'checkbox', label: 'Image URL' },
+      // { id: 'image_url', type: 'checkbox', label: 'Image URL' },
       { id: 'part_of_speech', type: 'checkbox', label: 'Part of speech' },
       { id: 'target_language', type: 'checkbox', label: 'Include target language' },
       { id: 'tags', type: 'checkbox', label: 'Tags' },
