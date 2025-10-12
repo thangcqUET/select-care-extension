@@ -716,29 +716,56 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
     getData: () => {
       try {
         // Build pieces: flatten meanings by part
+        // Merge marked meanings from current state and any cached entries for the same selectedText
         const pieces: Array<any> = [];
+
+        const seen = new Set<string>();
+        const addMarked = (pos: string, m: any, pieceTargetLang?: string) => {
+          if (!m || !m.marked) return;
+          const uniqueKey = `${pos}||${(m.definition||m.title||'').trim()}||${(m.example||'').trim()}`;
+          if (seen.has(uniqueKey)) return;
+          seen.add(uniqueKey);
+          const tgtForPiece = pieceTargetLang || targetLang;
+          let definition = null;
+          let translation = null;
+          // decide whether this meaning should be treated as a translation or definition
+          // if the meaning comes from a cached entry, use that entry's target language (tgtForPiece)
+          if (sourceLang !== tgtForPiece) translation = m.definition || '';
+          if (sourceLang === tgtForPiece) definition = m.definition || '';
+
+          pieces.push({
+            target_language: tgtForPiece,
+            definition,
+            translation,
+            example: (m && m.example) ? m.example : null,
+            part_of_speech: pos || null,
+            phonetics_text: phonetic?.text ?? null,
+            phonetics_audio: phonetic?.audio ?? null,
+            image_url: (m && (m.image_url || m.image)) ? (m.image_url || m.image) : null
+          });
+        };
+
+        // 1) current meanings state
         for (const pos of parts) {
           const list = (meanings && meanings[pos]) || [];
-          for (const m of list) {
-            // just push marked meanings
-            // definition is required when sourceLang === targetLang
-            // translation is required when sourceLang !== targetLang
-            if (!m || (!m.marked)) continue;
-            let definition=null;
-            let translation=null;
-            if (sourceLang !== targetLang) translation = m.definition || '';
-            if (sourceLang === targetLang) definition = m.definition || '';
-            pieces.push({
-              target_language: targetLang,
-              definition: definition,
-              translation: translation,
-              example: (m && m.example) ? m.example : null,
-              part_of_speech: pos || null,
-              phonetics_text: phonetic?.text ?? null,
-              phonetics_audio: phonetic?.audio ?? null,
-              image_url: (m && (m.image_url || m.image)) ? (m.image_url || m.image) : null
-            });
+          for (const m of list) addMarked(pos, m, targetLang);
+        }
+
+        // 2) also include any cached entries that match this selectedText (across language pairs)
+        try {
+          const textPrefix = (selectedText || '').split('\n')[0].trim() + '|';
+          for (const [k, cached] of cacheByLangPair.current) {
+            if (!k || !k.startsWith(textPrefix)) continue;
+            const partsKey = (k || '').split('|');
+            const cachedTarget = partsKey[2] || targetLang;
+            const cachedMeanings = (cached && cached.meanings) || {};
+            for (const pos of Object.keys(cachedMeanings)) {
+              const list = cachedMeanings[pos] || [];
+              for (const m of list) addMarked(pos, m, cachedTarget);
+            }
           }
+        } catch (e) {
+          // ignore cache read errors
         }
 
         return {
