@@ -417,7 +417,7 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
                     const list = next[usePos] ? [...next[usePos]] : [];
                     const already = list.some((m) => (m.definition || m.title || '').trim() === text.trim());
                     if (!already) {
-                      list.unshift({ title: text, definition: text, example: detected ? `(${detected})` : '' });
+                      list.unshift({ title: text, definition: text, example: '' });
                     }
                     next[usePos] = list;
                     return next;
