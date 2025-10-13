@@ -156,7 +156,7 @@ export class SelectPopup {
     const icons = [
       { emoji: '🌏', action: 'learn', title: 'Learn it' },
       { emoji: '📝', action: 'note', title: 'Save as Note' },
-      { emoji: '🤖', action: 'chat', title: 'Ask AI' }
+      // { emoji: '🤖', action: 'chat', title: 'Ask AI' } //TODO
     ];
 
     icons.forEach(icon => {

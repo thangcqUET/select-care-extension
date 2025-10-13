@@ -158,48 +158,7 @@ function App() {
         <p className="text-sm text-gray-600">Smart text selection and management</p>
         <p className="text-xs text-purple-600 font-medium">{userEmail}</p>
       </div>
-
-      {/* Instructions */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 mb-4 border border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">How to use:</h2>
-        <ol className="text-sm text-gray-700 space-y-1">
-          <li className="flex items-start">
-            <span className="font-medium text-blue-600 mr-2">1.</span>
-            Select any text on a webpage
-          </li>
-          <li className="flex items-start">
-            <span className="font-medium text-blue-600 mr-2">2.</span>
-            Choose an action: Learn, Note, or Ask AI
-          </li>
-          <li className="flex items-start">
-            <span className="font-medium text-blue-600 mr-2">3.</span>
-            Fill in details and save
-          </li>
-          <li className="flex items-start">
-            <span className="font-medium text-blue-600 mr-2">4.</span>
-            Open sidebar to manage your selections
-          </li>
-        </ol>
-      </div>
-
-      {/* Action buttons */}
-      <div className="space-y-3 mb-4">
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
-            <div className="text-2xl mb-1">🌐</div>
-            <div className="text-xs font-medium text-gray-700">Learn</div>
-          </div>
-          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
-            <div className="text-2xl mb-1">📝</div>
-            <div className="text-xs font-medium text-gray-700">Note</div>
-          </div>
-          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
-            <div className="text-2xl mb-1">🤖</div>
-            <div className="text-xs font-medium text-gray-700">Ask AI</div>
-          </div>
-        </div>
-      </div>
-
+      
       {/* Dashboard link */}
       <button
         onClick={openDashboard}
@@ -217,6 +176,48 @@ function App() {
         <span>⚙️</span>
         <span>Settings</span>
       </button>
+
+      {/* Instructions */}
+      <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 mb-4 border border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">How to use:</h2>
+        <ol className="text-sm text-gray-700 space-y-1">
+          <li className="flex items-start">
+            <span className="font-medium text-blue-600 mr-2">1.</span>
+            Select any text on a webpage
+          </li>
+          <li className="flex items-start">
+            <span className="font-medium text-blue-600 mr-2">2.</span>
+            {/* TODO: Choose an action: Learn, Note, or Ask AI */}
+            Choose an action: Learn, Note
+          </li>
+          <li className="flex items-start">
+            <span className="font-medium text-blue-600 mr-2">3.</span>
+            Fill in details and save
+          </li>
+          <li className="flex items-start">
+            <span className="font-medium text-blue-600 mr-2">4.</span>
+            Open sidebar to manage your selections
+          </li>
+        </ol>
+      </div>
+
+      {/* Action buttons */}
+      {/* <div className="space-y-3 mb-4">
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
+            <div className="text-2xl mb-1">🌐</div>
+            <div className="text-xs font-medium text-gray-700">Learn</div>
+          </div>
+          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
+            <div className="text-2xl mb-1">📝</div>
+            <div className="text-xs font-medium text-gray-700">Note</div>
+          </div>
+          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
+            <div className="text-2xl mb-1">🤖</div>
+            <div className="text-xs font-medium text-gray-700">Ask AI</div>
+          </div>
+        </div>
+      </div> */}
 
       {/* Sign out button */}
       <button

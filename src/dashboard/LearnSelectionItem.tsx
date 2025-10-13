@@ -6,6 +6,7 @@ interface Props {
   expandedComments: boolean;
   onToggleComments: () => void;
   deleteSelection: (id: string) => void;
+  editSelection?: (selection: any) => Promise<boolean>;
   getUserStats: () => { totalSelections: number; todayCount: number };
 }
 
@@ -20,8 +21,12 @@ const TextWithLineBreaks: React.FC<{ text: string }> = ({ text }) => (
   </div>
 );
 
-const LearnSelectionItem: React.FC<Props> = ({ selection, expandedComments, onToggleComments, deleteSelection }) => {
+const LearnSelectionItem: React.FC<Props> = ({ selection, expandedComments, onToggleComments, deleteSelection, editSelection }) => {
   const [expandedPieces, setExpandedPieces] = useState<Record<number, boolean>>({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(selection.text || '');
+  const [editTags, setEditTags] = useState<string>((selection.tags || []).filter((t: string) => !t.startsWith('fn_')).join(', '));
+  const [editPieces, setEditPieces] = useState<any[]>(Array.isArray(selection.pieces) ? selection.pieces.map((p: any) => ({ ...p })) : []);
 
   const pieces = Array.isArray(selection.pieces) ? selection.pieces : [];
 
@@ -39,19 +44,98 @@ const LearnSelectionItem: React.FC<Props> = ({ selection, expandedComments, onTo
         </div>
         <div className="flex items-center space-x-2">
           <span className="text-xs text-gray-500">{new Date(selection.metadata.timestamp).toLocaleString()}</span>
-          <button
-            onClick={() => deleteSelection(selection.selection_id)}
-            className="text-red-400 hover:text-red-600 text-xs px-1 py-0.5 rounded"
-            title="Delete selection"
-          >
-            🗑️
-          </button>
+            <div className="flex items-center space-x-1">
+              {editSelection && (
+                <button
+                  onClick={() => setIsEditing(prev => !prev)}
+                  className="text-sm text-indigo-600 hover:text-indigo-800 px-2 py-0.5 rounded"
+                  title="Edit selection"
+                >
+                  ✏️
+                </button>
+              )}
+              <button
+                onClick={() => deleteSelection(selection.selection_id)}
+                className="text-red-400 hover:text-red-600 text-xs px-1 py-0.5 rounded"
+                title="Delete selection"
+              >
+                🗑️
+              </button>
+            </div>
         </div>
       </div>
 
-      <div className="mb-2">
-        <p className="text-sm text-gray-900 leading-relaxed"><TextWithLineBreaks text={selection.text} /></p>
-      </div>
+        {isEditing ? (
+          <div className="mb-2 space-y-2">
+            <label className="text-xs text-gray-600">Selected text</label>
+              <label className="text-xs text-gray-600">Tags (comma separated)</label>
+              <input value={editTags} onChange={(e) => setEditTags(e.target.value)} className="w-full p-2 border rounded text-sm" placeholder="tags, comma separated" />
+
+            {editPieces.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-gray-700">Pieces</div>
+                {editPieces.map((p, idx) => (
+                  <div key={idx} className="p-2 bg-gray-50 rounded">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-gray-600">Target language</label>
+                        <input value={p.target_language || ''} onChange={(e) => {
+                          const next = [...editPieces]; next[idx] = { ...next[idx], target_language: e.target.value }; setEditPieces(next);
+                        }} className="w-full p-1 border rounded text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600">Part of speech</label>
+                        <input value={p.part_of_speech || ''} onChange={(e) => {
+                          const next = [...editPieces]; next[idx] = { ...next[idx], part_of_speech: e.target.value }; setEditPieces(next);
+                        }} className="w-full p-1 border rounded text-sm" />
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <label className="text-xs text-gray-600">Definition</label>
+                      <input value={p.definition || ''} onChange={(e) => {
+                        const next = [...editPieces]; next[idx] = { ...next[idx], definition: e.target.value }; setEditPieces(next);
+                      }} className="w-full p-1 border rounded text-sm" />
+                    </div>
+                    <div className="mt-2">
+                      <label className="text-xs text-gray-600">Translation</label>
+                      <input value={p.translation || ''} onChange={(e) => {
+                        const next = [...editPieces]; next[idx] = { ...next[idx], translation: e.target.value }; setEditPieces(next);
+                      }} className="w-full p-1 border rounded text-sm" />
+                    </div>
+                    <div className="mt-2">
+                      <label className="text-xs text-gray-600">Example</label>
+                      <input value={p.example || ''} onChange={(e) => {
+                        const next = [...editPieces]; next[idx] = { ...next[idx], example: e.target.value }; setEditPieces(next);
+                      }} className="w-full p-1 border rounded text-sm" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={async () => {
+                  if (!editSelection) return;
+                  // preserve fn_ tags
+                  const fnTags = (selection.tags || []).filter((t: string) => t.startsWith('fn_'));
+                  const newTags = [...fnTags, ...editTags.split(',').map(t => t.trim()).filter(Boolean)];
+                  const newSelection = { ...selection, text: editText, tags: newTags, pieces: editPieces };
+                  const ok = await editSelection(newSelection);
+                  if (ok) setIsEditing(false);
+                }}
+                className="px-2 py-1 text-sm bg-green-100 text-green-800 rounded"
+              >
+                Save
+              </button>
+              <button onClick={() => { setIsEditing(false); setEditText(selection.text || ''); setEditTags((selection.tags || []).filter((t: string) => !t.startsWith('fn_')).join(', ')); setEditPieces(Array.isArray(selection.pieces) ? selection.pieces.map((p: any) => ({ ...p })) : []); }} className="px-2 py-1 text-sm bg-gray-100 rounded">Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-2">
+            <p className="text-sm text-gray-900 leading-relaxed"><TextWithLineBreaks text={selection.text} /></p>
+          </div>
+        )}
 
       {selection.source_language && (
         <div className="mb-2">

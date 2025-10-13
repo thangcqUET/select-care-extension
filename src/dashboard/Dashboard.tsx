@@ -126,6 +126,24 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const editSelection = async (updatedSelection: BasedSelection) => {
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'updateSelection', data: { selection: updatedSelection } });
+      if (response && response.success) {
+        // update local state
+        const updated = selections.map(s => s.selection_id === updatedSelection.selection_id ? updatedSelection : s);
+        setSelections(updated);
+        console.log('Selection updated locally');
+        return true;
+      } else {
+        console.error('Failed to update selection:', response?.error);
+      }
+    } catch (err) {
+      console.error('Error updating selection:', err);
+    }
+    return false;
+  };
+
   const refreshSelections = async () => {
     try {
       const response = await chrome.runtime.sendMessage({ action: 'getAllSelections' });
@@ -218,8 +236,9 @@ const Dashboard: React.FC = () => {
                 >
                   <option value="manage">Manage</option>
                   <option value="export">Export</option>
-                  <option value="learn">Learn</option>
-                  <option value="stats">Stats</option>
+                  {/* <option value="learn">Learn</option>
+                  <option value="stats">Stats</option> */}
+                  {/* TODO: Learn, Stats */}
                 </select>
               </div>
 
@@ -244,6 +263,7 @@ const Dashboard: React.FC = () => {
             clearFilters={clearFilters}
             refreshSelections={refreshSelections}
             deleteSelection={deleteSelection}
+            editSelection={editSelection}
             expandedComments={expandedComments}
             toggleCommentsFor={(id: string) => {
               const newExpanded = new Set(expandedComments);
@@ -277,6 +297,7 @@ const Dashboard: React.FC = () => {
               setExpandedComments(newExpanded);
             }}
             deleteSelection={deleteSelection}
+            editSelection={editSelection}
             getUserStats={getUserStats}
           />
         )}

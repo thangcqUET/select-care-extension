@@ -16,6 +16,7 @@ type Props = {
   clearFilters: () => void;
   refreshSelections: () => Promise<void>;
   deleteSelection: (id: string) => Promise<void>;
+  editSelection: (selection: any) => Promise<boolean>;
   expandedComments: Set<string>;
   toggleCommentsFor: (id: string) => void;
   expandedCards: Set<string>;
@@ -36,6 +37,7 @@ const ManageView: React.FC<Props> = ({
   clearFilters,
   refreshSelections,
   deleteSelection,
+  editSelection,
   expandedComments,
   toggleCommentsFor,
   expandedCards,
@@ -144,6 +146,7 @@ const ManageView: React.FC<Props> = ({
                   expandedComments={expandedComments.has(selection.selection_id)}
                   onToggleComments={() => toggleCommentsFor(selection.selection_id)}
                   deleteSelection={deleteSelection}
+                  editSelection={editSelection}
                   getUserStats={getUserStats}
                 />
               ) : (
@@ -154,6 +157,7 @@ const ManageView: React.FC<Props> = ({
                   expandedCard={expandedCards.has(selection.selection_id)}
                   onToggleCard={() => toggleCardFor(selection.selection_id)}
                   deleteSelection={deleteSelection}
+                  editSelection={editSelection}
                   getUserStats={getUserStats}
                 />
               )}

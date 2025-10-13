@@ -7,10 +7,11 @@ type Props = {
   expandedComments: Set<string>;
   toggleCommentsFor: (id: string) => void;
   deleteSelection: (id: string) => Promise<void>;
+  editSelection?: (selection: any) => Promise<boolean>;
   getUserStats: () => { totalSelections: number; todayCount: number };
 };
 
-const LearnView: React.FC<Props> = ({ selections, expandedComments, toggleCommentsFor, deleteSelection, getUserStats }) => {
+const LearnView: React.FC<Props> = ({ selections, expandedComments, toggleCommentsFor, deleteSelection, editSelection, getUserStats }) => {
   const learnItems = selections.filter(s => s.type === 'learn') as BasedSelection[];
 
   if (learnItems.length === 0) {
@@ -31,6 +32,7 @@ const LearnView: React.FC<Props> = ({ selections, expandedComments, toggleCommen
           expandedComments={expandedComments.has(selection.selection_id)}
           onToggleComments={() => toggleCommentsFor(selection.selection_id)}
           deleteSelection={deleteSelection}
+          editSelection={editSelection}
           getUserStats={getUserStats}
         />
       ))}

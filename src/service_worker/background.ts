@@ -275,6 +275,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Return true to indicate async response
     return true;
   }
+
+  // Update an existing selection (overwrite by selection_id)
+  if (message.action === 'updateSelection') {
+    const selection = message.data?.selection;
+    if (!selection || !selection.selection_id) {
+      sendResponse({ success: false, error: 'Invalid selection data' });
+      return;
+    }
+
+    selectionDB.saveSelection(selection).then(() => {
+      console.log('Selection updated in IndexedDB:', selection.selection_id);
+      sendResponse({ success: true, message: 'Selection updated successfully' });
+      // Broadcast update to refresh dashboard
+      broadcastDataUpdate();
+    }).catch(error => {
+      console.error('Failed to update selection:', error);
+      sendResponse({ success: false, error: error.message });
+    });
+
+    return true;
+  }
   
   if (message.action === 'searchSelections') {
     selectionDB.searchSelections(message.data.query).then(selections => {
