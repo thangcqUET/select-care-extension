@@ -36,7 +36,7 @@ export class NoteInput {
     container.className = 'note-input-container';
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
-    container.style.gap = '12px';
+    container.style.gap = '5px';
     return container;
   }
 

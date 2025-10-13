@@ -17,6 +17,8 @@ export interface TagInputOptions {
   onEnterEmpty?: () => void; // Called when Enter is pressed with empty input but tags exist
 }
 
+import { debounce } from '../../utils';
+
 export class TagInput {
   private container!: HTMLElement;
   private shadowRoot!: ShadowRoot;
@@ -25,6 +27,11 @@ export class TagInput {
   private options: TagInputOptions;
   private hiddenInput!: HTMLInputElement;
   private textInput!: HTMLInputElement;
+  private suggestionContainer!: HTMLElement;
+  private savedTags: string[] = [];
+  private visibleSuggestions: string[] = [];
+  private suggestionIndex: number = -1;
+  private debouncedUpdate: (q: string) => void;
 
   constructor(options: TagInputOptions = {}) {
     this.options = {
@@ -40,6 +47,7 @@ export class TagInput {
     this.setupStyles();
     this.setupEventListeners();
     this.renderTags();
+    this.debouncedUpdate = debounce((q: string) => this.updateSuggestions(q), 180);
   }
 
   private createComponent() {
@@ -61,6 +69,12 @@ export class TagInput {
     wrapper.className = 'tag-input-wrapper';
     wrapper.appendChild(this.hiddenInput);
     wrapper.appendChild(this.textInput);
+
+  // Suggestion dropdown (hidden by default)
+  this.suggestionContainer = document.createElement('div');
+  this.suggestionContainer.className = 'tag-suggestions';
+  this.suggestionContainer.style.display = 'none';
+  wrapper.appendChild(this.suggestionContainer);
 
     this.shadowRoot.appendChild(wrapper);
   }
@@ -161,6 +175,33 @@ export class TagInput {
 
       .tag-input-field::placeholder {
         color: rgba(0, 0, 0, 0.5);
+      }
+
+      .tag-suggestions {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 6px;
+        right: 6px;
+        background: white;
+        border: 1px solid rgba(63,63,63,0.12);
+        border-radius: 8px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        max-height: 160px;
+        overflow: auto;
+        padding: 6px 4px;
+        box-sizing: border-box;
+      }
+
+      .tag-suggestion-item {
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #0b1220;
+      }
+
+      .tag-suggestion-item:hover, .tag-suggestion-item.active {
+        background: rgba(59,130,246,0.08);
       }
 
       .tag-edit-input {
@@ -298,10 +339,41 @@ export class TagInput {
       return;
     }
 
+    // Suggestion navigation: handle arrow keys and Enter selection
+    const suggestionsVisible = this.suggestionContainer && this.suggestionContainer.style.display !== 'none';
+    if (key === 'ArrowDown' || key === 'ArrowUp' || key === 'Enter') {
+      if (suggestionsVisible) {
+        if (key === 'ArrowDown') {
+          this.suggestionIndex = Math.min(this.suggestionIndex + 1, Math.max(0, this.visibleSuggestions.length - 1));
+          this.highlightSuggestion();
+        } else if (key === 'ArrowUp') {
+          this.suggestionIndex = Math.max(this.suggestionIndex - 1, 0);
+          this.highlightSuggestion();
+        } else if (key === 'Enter') {
+          if (this.suggestionIndex >= 0 && this.suggestionIndex < this.visibleSuggestions.length) {
+            const tag = this.visibleSuggestions[this.suggestionIndex];
+            this.selectSuggestion(tag);
+            if (keyData instanceof KeyboardEvent) keyData.preventDefault();
+            return;
+          }
+        }
+        if (keyData instanceof KeyboardEvent) keyData.preventDefault();
+        return;
+      }
+    }
+
     // For custom events, we need to manually add the character to the input
     if (!(keyData instanceof KeyboardEvent) && key.length === 1 && !ctrlKey && !metaKey && !altKey) {
       input.value += key;
-    //   this.options.onInputChange?.(input.value);
+      // Notify external listeners and update suggestions (debounced) because
+      // programmatic modifications don't fire the native 'input' event.
+      try {
+        this.options.onInputChange?.(input.value);
+      } catch {}
+      try {
+        // debouncedUpdate may not be initialized in rare timing cases, guard it
+        if (typeof this.debouncedUpdate === 'function') this.debouncedUpdate(input.value || '');
+      } catch {}
     }
   }
 
@@ -313,16 +385,114 @@ export class TagInput {
     
     // Trigger input change callback
     this.options.onInputChange?.(input.value);
+    // Debounced suggestions update
+    this.debouncedUpdate(input.value || '');
   }
 
   private handleFocus() {
     console.log('TagInput focused');
     this.options.onInputFocus?.();
+    // Lazy-load saved tags and open suggestions (if any)
+    this.fetchSavedTags().then(() => {
+      const val = (this.textInput.value || '').trim();
+      if (val.length > 0) {
+        this.debouncedUpdate(val);
+      } else {
+        // ensure suggestions are hidden on focus if no text
+        this.hideSuggestions();
+      }
+    }).catch(() => {});
   }
 
   private handleBlur() {
     console.log('TagInput blurred');
     this.options.onInputBlur?.();
+    // Hide suggestions shortly after blur to allow click handlers to fire
+    setTimeout(() => this.hideSuggestions(), 150);
+  }
+
+  // Fetch saved tags from background selections (unique, excludes fn_ tags)
+  private async fetchSavedTags() {
+    try {
+      const resp: any = await new Promise((resolve) => chrome.runtime.sendMessage({ action: 'getAllSelections' }, (r: any) => resolve(r)));
+      if (resp && resp.success && Array.isArray(resp.data)) {
+        const tagSet = new Set<string>();
+        resp.data.forEach((s: any) => {
+          (s.tags || []).forEach((t: string) => { if (t && !t.startsWith('fn_')) tagSet.add(t); });
+        });
+        this.savedTags = Array.from(tagSet).sort();
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  private updateSuggestions(prefix: string) {
+    const q = (prefix || '').trim().toLowerCase();
+    if (!q) {
+      // If query is empty, don't show suggestions — only show when user starts typing
+      this.hideSuggestions();
+      return;
+    }
+
+    this.visibleSuggestions = this.savedTags
+      .filter(t => !this.tags.includes(t) && t.toLowerCase().startsWith(q))
+      .slice(0, 5);
+    this.suggestionIndex = -1;
+    this.renderSuggestions();
+  }
+
+  private renderSuggestions() {
+    if (!this.suggestionContainer) return;
+    this.suggestionContainer.innerHTML = '';
+    if (!this.visibleSuggestions || this.visibleSuggestions.length === 0) {
+      this.suggestionContainer.style.display = 'none';
+      return;
+    }
+    this.visibleSuggestions.forEach((tag, i) => {
+      const item = document.createElement('div');
+      item.className = `tag-suggestion-item ${i === this.suggestionIndex ? 'active' : ''}`;
+      item.textContent = tag;
+      item.addEventListener('mousedown', (ev) => {
+        // use mousedown to select before blur
+        ev.preventDefault();
+        this.selectSuggestion(tag);
+      });
+      item.addEventListener('click', (ev) => { ev.preventDefault(); this.selectSuggestion(tag); });
+      this.suggestionContainer.appendChild(item);
+    });
+    this.suggestionContainer.style.display = 'block';
+  }
+
+  private highlightSuggestion() {
+    if (!this.suggestionContainer) return;
+    const children = Array.from(this.suggestionContainer.children) as HTMLElement[];
+    children.forEach((c, idx) => c.classList.toggle('active', idx === this.suggestionIndex));
+    const activeEl = children[this.suggestionIndex];
+    if (activeEl) {
+      try { activeEl.scrollIntoView({ block: 'nearest' }); } catch {}
+    }
+  }
+
+  private selectSuggestion(tag: string) {
+    // add tag immediately
+    const added = this.addTag(tag);
+    if (added) {
+      this.textInput.value = '';
+      this.options.onInputChange?.('');
+      this.hideSuggestions();
+    } else {
+      // if couldn't add due to duplicates, still clear
+      this.textInput.value = '';
+      this.hideSuggestions();
+    }
+  }
+
+  private hideSuggestions() {
+    if (!this.suggestionContainer) return;
+    this.suggestionContainer.style.display = 'none';
+    this.visibleSuggestions = [];
+    this.suggestionIndex = -1;
   }
 
   private addTag(tagText: string): boolean {

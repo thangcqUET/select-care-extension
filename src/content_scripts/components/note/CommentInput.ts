@@ -129,7 +129,6 @@ export class CommentInput {
         padding: 4px 8px;
         border: 1px solid rgba(59, 130, 246, 0.3);
         border-radius: 6px;
-        background: rgba(59, 130, 246, 0.1);
         color: #2563eb;
         font-size: 12px;
         font-weight: 500;

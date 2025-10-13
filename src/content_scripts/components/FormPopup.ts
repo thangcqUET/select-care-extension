@@ -46,13 +46,13 @@ export class FormPopup {
         position: fixed;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 5px;
         border-radius: 12px;
         transform: scale(0.3) translate(-50%, 0);
         
         padding: 12px;
-        background: rgba(255, 255, 255, 0.4);
-        backdrop-filter: blur(20px);
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(100px);
         border: 1px solid rgba(63, 63, 63, 0.3);
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -128,6 +128,12 @@ export class FormPopup {
         display: flex;
         gap: 6px;
         margin-top: 4px;
+        justify-content: center; /* center the button group */
+      }
+
+      /* keep buttons compact inside the centered action group */
+      .form-actions .form-button {
+        flex: 0 0 auto;
       }
 
       .form-button {
@@ -155,16 +161,21 @@ export class FormPopup {
       }
 
       .form-button.primary {
-        background: rgba(255, 255, 255, 0.8);
-        color: #000;
-        border: 1px solid rgba(63, 63, 63, 0.3);
+        /* bordered primary by default: transparent fill with colored border */
+        background: transparent;
+        color: rgba(12, 24, 40, 0.95);
+        border: 1px solid rgba(100, 120, 240, 0.7);
         font-weight: 600;
+        box-shadow: none;
       }
 
       .form-button.primary:hover {
-        background: rgba(255, 255, 255, 0.95);
-        transform: scale(1.02);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        /* on hover: full pastel fill with subtle lift and shadow */
+        background: rgba(173, 206, 255, 0.98);
+        color: rgba(12, 24, 40, 0.95);
+        transform: translateY(-1px) scale(1.01);
+        box-shadow: 0 6px 18px rgba(100, 120, 240, 0.06);
+        border-color: rgba(100, 120, 240, 0.24);
       }
 
       .form-button:active {
@@ -193,17 +204,8 @@ export class FormPopup {
         border-radius: 8px;
         backdrop-filter: blur(5px);
         position: relative;
-      }
-
-      .tags-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, rgba(54, 162, 235, 0.3), rgba(54, 162, 235, 0.1));
-        border-radius: 8px 8px 0 0;
+        /* Very large z-index to ensure suggestions float above other popup elements */
+        z-index: 2147483647;
       }
 
       
@@ -216,7 +218,7 @@ export class FormPopup {
 .badge { padding:6px 8px; border-radius:999px; background: rgba(0,0,0,0.04); cursor:pointer; font-size:12px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; border: none; }
 .badge.active { border: 1px solid rgba(63,63,63,0.2); }
 .tabs { margin-top:8px; }
-.meanings-wrap { width: 100%; max-width: 100%; max-height: 250px; overflow-y: auto; padding-right: 6px; box-sizing: border-box; scroll-behavior: smooth; scroll-padding: 8px; }
+.meanings-wrap { width: 100%; max-width: 100%; max-height: 215px; overflow-y: auto; padding-right: 6px; box-sizing: border-box; scroll-behavior: smooth; scroll-padding: 8px; }
 /* hide native scrollbars while preserving scroll behavior */
 .meanings-wrap::-webkit-scrollbar { width: 0; height: 0; }
 .meanings-wrap { -ms-overflow-style: none; /* IE and Edge */ scrollbar-width: none; /* Firefox */ }
@@ -240,7 +242,6 @@ export class FormPopup {
 .form-actions { display:flex; gap:8px; margin-top:6px; flex-wrap:wrap; }
 .form-button { flex: 0 0 auto; padding:6px 10px; border-radius:8px; border:1px solid rgba(63,63,63,0.12); background: rgba(255,255,255,0.6); cursor:pointer; white-space:nowrap; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;}
 .form-button.small { padding:6px 8px; font-size:12px; }
-.form-button.primary { background: linear-gradient(90deg,#7c3aed,#06b6d4); color:#fff; border:none; }
 .form-button-marked { color: white; border: none; }
 .mark-wrap { position: relative; display: inline-flex; align-items: center; }
 .mark-wrap .tooltip { display: none; position: absolute; top: 50%; left: auto; right: calc(100% + 8px); transform: translateY(-50%); background: rgba(0,0,0,0.85); color: #fff; padding:6px 8px; border-radius:6px; font-size:12px; white-space:nowrap; z-index:2147483647; pointer-events: none; }

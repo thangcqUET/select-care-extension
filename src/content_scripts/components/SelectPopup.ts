@@ -38,8 +38,8 @@ export class SelectPopup {
         transform: translate(-50%, -50%) scale(0.8);
         
         padding: 5px;
-        background: rgba(255, 255, 255, 0.4);
-        backdrop-filter: blur(20px);
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(100px);
         border: 1px solid rgba(63, 63, 63, 0.3);
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;

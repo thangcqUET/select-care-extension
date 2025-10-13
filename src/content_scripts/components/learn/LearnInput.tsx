@@ -109,7 +109,10 @@ const Tabs: React.FC<{
   onRegisterDef?: (pos: string, idx: number, el: HTMLTextAreaElement | null) => void; 
   onRegisterExample?: (pos: string, idx: number, el: HTMLTextAreaElement | null) => void; 
   onRegisterMeaning?: (pos: string, idx: number, el: HTMLElement | null) => void; 
-  onRegisterWrap?: (pos: string, el: HTMLElement | null) => void }> = (
+  onRegisterWrap?: (pos: string, el: HTMLElement | null) => void;
+  sourceLang?: string;
+  targetLang?: string;
+}> = (
     { 
       parts, 
       active, 
@@ -124,7 +127,9 @@ const Tabs: React.FC<{
       onRegisterDef, 
       onRegisterExample, 
       onRegisterMeaning, 
-      onRegisterWrap 
+      onRegisterWrap,
+      sourceLang,
+      targetLang
     }) => {
       console.log("parts");
       console.log(parts);
@@ -136,6 +141,14 @@ const Tabs: React.FC<{
         <div className="tabs">
           {parts.length ? parts.map((p) => (
             <div key={p} className={`tab ${p === active ? 'active' : ''}`} data-pos={p}>
+              {/* contextual note: show count when definitions (target == source), otherwise instruct to mark to save */}
+              <div className="learn-note small" style={{ marginBottom: 6, padding: '6px 8px', borderRadius: 8, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.18)', color: 'rgba(12,24,40,0.9)', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ flex: 1 }}>
+                  { (sourceLang && targetLang && sourceLang === targetLang) ? 
+                    `${(meanings[p] || []).length} definitions available — select at least one to save and learn.` : 
+                    `Mark meanings to save and learn.` }
+                </span>
+              </div>
               <div className="meanings-wrap" ref={(el) => onRegisterWrap && onRegisterWrap(p, el as HTMLElement | null)}>
                 {(meanings[p] || []).length ? (meanings[p] || []).map((m, i) => (
                   <MeaningItem
@@ -814,7 +827,7 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
         </div>
       ) : null}
       <Badges parts={parts} active={activePart} onSelect={(p) => setActivePart(p)} />
-    <Tabs parts={parts} active={activePart} meanings={meanings} loading={loading}
+  <Tabs parts={parts} active={activePart} meanings={meanings} loading={loading}
           onCustom={handleCustom}
               onToggleExpand={(pos, idx) => {
                   // record which meaning was toggled so a layout effect can scroll after render
@@ -855,10 +868,12 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
               const prompt = `${m?.definition || ''} ${m?.example || ''}`;
               chrome.runtime.sendMessage({ action: 'generateImage', prompt, pos, index: idx });
           }}
-      onRegisterDef={handleRegisterDef}
-      onRegisterExample={handleRegisterExample}
-      onRegisterWrap={(pos, el) => { wrapRefs.current.set(pos, el); }}
-      onRegisterMeaning={(pos, idx, el) => { meaningRefs.current.set(`${pos}:${idx}`, el); }}
+  onRegisterDef={handleRegisterDef}
+  onRegisterExample={handleRegisterExample}
+  onRegisterWrap={(pos, el) => { wrapRefs.current.set(pos, el); }}
+  onRegisterMeaning={(pos, idx, el) => { meaningRefs.current.set(`${pos}:${idx}`, el); }}
+  sourceLang={sourceLang}
+  targetLang={targetLang}
       />
       <SynList syns={syns} ants={ants} />
   {/* skeleton loader is now rendered inside the active tab by Tabs */}
