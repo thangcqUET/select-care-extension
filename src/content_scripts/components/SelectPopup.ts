@@ -154,7 +154,7 @@ export class SelectPopup {
     });
 
     const icons = [
-      { emoji: '🌏', action: 'learn', title: 'Learn it' },
+      { emoji: '🧠', action: 'learn', title: 'Save to Learn' },
       { emoji: '📝', action: 'note', title: 'Save as Note' },
       // { emoji: '🤖', action: 'chat', title: 'Ask AI' } //TODO
     ];
