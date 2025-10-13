@@ -36,13 +36,6 @@ export function isUserTyping(): boolean {
   // Check if it's a typing-related input type
   const inputType = (activeElement as HTMLInputElement).type;
   const isTypingInput = !inputType || 
-                       ['text', 'email', 'password', 'search', 'url', 'tel'].includes(inputType);
-  console.log({
-    isFormContainer,
-    isTagInputField,
-    isContentEditable,
-    isEditableDiv,
-    isTypingInput
-  })
+    ['text', 'email', 'password', 'search', 'url', 'tel'].includes(inputType);
   return (isFormContainer && isTypingInput) || isTagInputField || isContentEditable || isEditableDiv;
 }

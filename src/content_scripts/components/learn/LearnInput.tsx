@@ -131,12 +131,6 @@ const Tabs: React.FC<{
       sourceLang,
       targetLang
     }) => {
-      console.log("parts");
-      console.log(parts);
-      console.log("meanings");
-      console.log(meanings);
-      console.log("loading");
-      console.log(loading);
       return (
         <div className="tabs">
           {parts.length ? parts.map((p) => (
@@ -227,7 +221,6 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
 
   // register definition textarea refs
   const handleRegisterDef = (pos: string, idx: number, el: HTMLTextAreaElement | null) => {
-    console.debug("register def", { pos, idx, el });
     try {
       defRefs.current.set(`${pos}:${idx}`, el);
     } catch (e) {
