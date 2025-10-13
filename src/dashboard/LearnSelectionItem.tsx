@@ -133,26 +133,24 @@ const LearnSelectionItem: React.FC<Props> = ({ selection, expandedComments, onTo
           </div>
         ) : (
           <div className="mb-2">
-            <p className="text-sm text-gray-900 leading-relaxed"><TextWithLineBreaks text={selection.text} /></p>
+            <div className="p-2 bg-white rounded">
+              <p className="text-base text-gray-800 font-medium leading-relaxed"><TextWithLineBreaks text={selection.text} /></p>
+            </div>
           </div>
         )}
 
-      {selection.source_language && (
-        <div className="mb-2">
-          <span className="text-xs text-gray-600">Source: {selection.source_language}</span>
-        </div>
-      )}
+      {/* Removed explicit language labels per request; keep source_language in metadata but don't render it */}
 
       {pieces.length > 0 && (
         <div className="mb-2 space-y-2">
           {pieces.map((p, idx) => (
-            <div key={idx} className="p-2 bg-gray-50 rounded">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-gray-600">Target: <span className="font-medium text-gray-800">{p.target_language}</span></div>
-                  <div className="text-sm text-gray-700 mt-1">{p.translation || p.definition || '—'}</div>
+            <div key={idx} className="p-2 bg-white rounded shadow-sm border border-gray-300">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  {/* Emphasize the meaning/definition while keeping it visually separate from the selected text */}
+                  <div className="text-sm text-gray-800">{p.translation || p.definition || '—'}</div>
                 </div>
-                <div>
+                <div className="ml-2">
                   <button onClick={() => togglePiece(idx)} className="text-xs text-indigo-600 hover:text-indigo-800">{expandedPieces[idx] ? 'Hide' : 'Details'}</button>
                 </div>
               </div>
