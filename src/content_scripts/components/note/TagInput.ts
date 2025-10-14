@@ -437,7 +437,7 @@ export class TagInput {
 
     this.visibleSuggestions = this.savedTags
       .filter(t => !this.tags.includes(t) && t.toLowerCase().startsWith(q))
-      .slice(0, 5);
+      .slice(0, 3);
     this.suggestionIndex = -1;
     this.renderSuggestions();
   }
