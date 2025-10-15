@@ -137,7 +137,7 @@ function App() {
             <button
               // onClick={handleSignIn} // TODO: enable sign-in later
               onClick={handleGoToWebsite}
-              className="text-sm bg-white/80 hover:bg-white text-gray-800 px-3 py-1 rounded-full shadow-sm"
+              className="cursor-pointer text-sm bg-white/80 hover:bg-white text-gray-800 px-3 py-1 rounded-full shadow-sm"
             >
               Home
             </button>
@@ -147,7 +147,7 @@ function App() {
         {/* Dashboard link */}
         <button
           onClick={openDashboard}
-          className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:shadow-lg text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 mb-3"
+          className="cursor-pointer w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:shadow-lg text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 mb-3"
         >
           <span>📊</span>
           <span>Open Sidebar</span>
@@ -214,7 +214,7 @@ function App() {
         <div>
           <button
             onClick={handleSignOut}
-            className="text-sm bg-white/80 hover:bg-white text-gray-800 px-3 py-1 rounded-full shadow-sm"
+            className="cursor-pointer text-sm bg-white/80 hover:bg-white text-gray-800 px-3 py-1 rounded-full shadow-sm"
           >
             Logout
           </button>
@@ -224,7 +224,7 @@ function App() {
       {/* Dashboard link */}
       <button
         onClick={openDashboard}
-        className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:shadow-lg text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 mb-3"
+        className="cursor-pointer w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:shadow-lg text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 mb-3"
       >
         <span>📊</span>
         <span>Open Sidebar</span>
@@ -267,7 +267,7 @@ function App() {
       {/* Sign out button */}
       <button
         onClick={handleSignOut}
-        className="w-full text-red-600 hover:text-red-700 font-medium py-2 px-4 transition-colors duration-200 text-sm"
+        className="cursor-pointer w-full text-red-600 hover:text-red-700 font-medium py-2 px-4 transition-colors duration-200 text-sm"
       >
         Sign Out
       </button>
