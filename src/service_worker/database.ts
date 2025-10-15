@@ -112,14 +112,14 @@ class SelectionDatabase {
       request.onsuccess = () => {
         // Sort by timestamp (newest first)
         
-        console.log("request.result");
-        console.log(request.result);
+        // console.log("request.result");
+        // console.log(request.result);
 
         const selections = request.result.sort((a, b) => {
             return new Date(b.metadata?.timestamp)?.getTime() - new Date(a.metadata?.timestamp)?.getTime();
         });
-        console.log("selections");
-        console.log(selections);
+        // console.log("selections");
+        // console.log(selections);
         resolve(selections);
       };
 

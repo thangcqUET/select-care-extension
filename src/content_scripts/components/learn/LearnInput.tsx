@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 // import CSS as raw text so we can inject it into the popup ShadowRoot
 import { fetchDictionary } from '../../api/dictionary';
+import { analytics, EventAction } from '../../../lib/analytics';
 
 type Props = {
   selectedText?: string;
@@ -19,6 +20,15 @@ const TranslateControls: React.FC<{ source: string; target: string; onSourceChan
     <select title="Target Language" value={target} onChange={(e) => onTargetChange(e.target.value)}>
       <option value="vi">vi</option>
       <option value="en">en</option>
+      <option value="zh">zh</option>
+      {/* add japan, indonesia, korean, thai, indian, spanish, german */}
+      <option value="ja">ja</option>
+      <option value="id">id</option>
+      <option value="ko">ko</option>
+      <option value="th">th</option>
+      <option value="hi">hi</option>
+      <option value="es">es</option>
+      <option value="de">de</option>
     </select>
   </div>
 );
@@ -299,6 +309,14 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
       try {
         const data: DictionaryEntry[] = await fetchDictionary((textToLookup || '').trim());
         
+        // Track definition request
+        analytics.trackFormAction(EventAction.DEFINITION_REQUESTED, {
+          text: textToLookup,
+          sourceLang,
+          targetLang,
+          resultCount: data?.length || 0
+        });
+        
         setLoading(false);
         if (!mounted) return;
         if (!data || !Array.isArray(data) || data.length === 0) {
@@ -386,6 +404,14 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
   // Translate the selected text via background service and insert as a meaning.
   const translateText = async (textToTranslate: string, localTargetLang: string, localSourceLang: string) => {
     console.log('Translating', { textToTranslate, localTargetLang, localSourceLang });
+    
+    // Track translation request
+    analytics.trackFormAction(EventAction.TRANSLATE_REQUESTED, {
+      text: textToTranslate,
+      sourceLang: localSourceLang,
+      targetLang: localTargetLang
+    });
+    
     return new Promise<void>((resolve) => {
       let mounted = true;
       setTimeout(() => {
@@ -832,6 +858,18 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
                   }));
                   }} 
           onToggleMark={(pos, idx) => {
+              // Track mark to save action
+              const currentMeaning = meanings[pos]?.[idx];
+              const willBeMarked = !currentMeaning?.marked;
+              
+              if (willBeMarked) {
+                analytics.trackFormAction(EventAction.MARK_TO_SAVE, {
+                  partOfSpeech: pos,
+                  meaningIndex: idx,
+                  hasDefinition: !!currentMeaning?.definition
+                });
+              }
+              
               setMeanings((prev) => ({
               ...prev,
               [pos]: prev[pos].map((m, i) => i === idx ? { ...m, marked: !m.marked } : m)

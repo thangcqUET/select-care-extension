@@ -1,5 +1,6 @@
 import { SelectionState } from "../SelectionState";
 import { FormPopup } from "./FormPopup";
+import { analytics } from "../../lib/analytics";
 
 // Virtual DOM component for the popup
 export class SelectPopup {
@@ -180,6 +181,12 @@ export class SelectPopup {
 
     // Store the selected text before hiding popup
     const textToProcess = SelectionState.getInstance().savedSelectedText || '';
+    
+    // Track popup button click
+    if (action === 'learn' || action === 'note') {
+      analytics.trackPopupClick(action);
+    }
+    
     // Hide the small select popup immediately
     this.hideImmediately();
 

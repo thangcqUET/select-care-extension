@@ -62,7 +62,7 @@ async function handleAuthentication(message: any, sender: chrome.runtime.Message
   try {
     // If it's an external message, verify the sender is our web app
     if (sender.origin) {
-      const allowedOrigins = ['http://localhost:3001', 'https://your-domain.com'];
+      const allowedOrigins = ['http://localhost:3001', 'https://main.djfc0uq2bj5xw.amplifyapp.com'];
       if (!allowedOrigins.includes(sender.origin)) {
         console.error('Authentication request from unauthorized origin:', sender.origin);
         sendResponse({ success: false, error: 'Unauthorized origin' });
@@ -119,6 +119,84 @@ chrome.runtime.onStartup.addListener(() => {
 
 // Handle messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Handle analytics tracking from content scripts
+    if (message.action === 'trackAnalytics') {
+      console.log('[Analytics] Received tracking event:', message.data);
+      // Forward to configured API endpoint (Measurement Protocol or proxy)
+      // We try to post to `${apiEndpoint}/collect` with a small retry queue.
+      (async () => {
+        let responded = false;
+        try {
+          // Try to get apiEndpoint from environment module, but guard against modules that touch `window`.
+          let apiEndpoint: string | undefined;
+          try {
+            const envModule = await import('../lib/environment');
+            if (envModule && typeof envModule.getConfig === 'function') {
+              const cfg = envModule.getConfig();
+              apiEndpoint = cfg?.apiEndpoint;
+            }
+          } catch (e) {
+            // Import may fail in service worker if module expects window; ignore and fallback
+            console.warn('[Analytics] Failed to import environment module (expected in SW):', e);
+          }
+
+          // Fallback: try chrome.storage.local for a configured endpoint
+          if (!apiEndpoint) {
+            try {
+              const stored = await chrome.storage.local.get(['selectcare_api_endpoint']);
+              apiEndpoint = stored?.selectcare_api_endpoint;
+            } catch (e) {
+              console.warn('[Analytics] Failed to read apiEndpoint from storage:', e);
+            }
+          }
+
+          if (!apiEndpoint) {
+            console.warn('[Analytics] No apiEndpoint configured, dropping event');
+            sendResponse({ success: false, error: 'No apiEndpoint' });
+            responded = true;
+            return;
+          }
+
+          // Respect disable flag in storage
+          try {
+            const storedFlag = await chrome.storage.local.get(['analytics_disabled']);
+            if (storedFlag && storedFlag.analytics_disabled) {
+              console.log('[Analytics] Analytics forwarding disabled via storage flag');
+              sendResponse({ success: false, error: 'analytics_disabled' });
+              responded = true;
+              return;
+            }
+          } catch (e) {
+            // ignore storage errors
+          }
+
+          const url = apiEndpoint.replace(/\/$/, '') + '/collect';
+          const body = JSON.stringify({ event: message.data, timestamp: Date.now() });
+
+          // Try sending once; background service worker lifecycle is limited so keep it simple
+          const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body
+          });
+
+          if (!resp.ok) {
+            console.warn('[Analytics] Server responded with non-OK status', resp.status);
+            sendResponse({ success: false, status: resp.status });
+          } else {
+            sendResponse({ success: true });
+          }
+          responded = true;
+        } catch (err) {
+          console.error('[Analytics] Failed to forward event:', err);
+          if (!responded) {
+            try { sendResponse({ success: false, error: String(err) }); } catch (e) {}
+          }
+        }
+      })();
+      return true; // Indicate async response
+  }
+
   // Handle authentication messages from content scripts
   if (message.action === 'authenticate') {
     console.log('Received authentication message from content script:', message);

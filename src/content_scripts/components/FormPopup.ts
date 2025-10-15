@@ -4,6 +4,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import LearnInput from './learn/LearnInput';
 import { NoteInput } from './note/NoteInput';
+import { analytics, EventAction } from '../../lib/analytics';
 
 export class FormPopup {
   private container: HTMLDivElement;
@@ -588,6 +589,13 @@ export class FormPopup {
 
   private async saveLearn(data: any) {
   // Saving learn data
+    // Track save to learn submit event
+    analytics.trackFormAction(EventAction.SAVE_TO_LEARN_SUBMIT, {
+      textLength: this.selectedText.length,
+      sourceUrl: window.location.href,
+      hasPieces: data.pieces && data.pieces.length > 0
+    });
+    
     // TODO: Implement learn API and storage
     let learnSelection = convertToSelection(data);
     await chrome.runtime.sendMessage({ action: 'learn', data: learnSelection });
@@ -596,6 +604,13 @@ export class FormPopup {
 
   private async saveNote(data: any) {
   // Saving note
+    // Track save note event via analytics
+    analytics.trackNoteAction(EventAction.SAVE_NOTE, {
+      textLength: this.selectedText.length,
+      sourceUrl: window.location.href,
+      tagCount: data.tagCount || 0,
+      hasComment: !!data.comment
+    });
     
     // TODO: Implement note storage
     let noteSelection = convertToSelection(data);

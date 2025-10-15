@@ -1,5 +1,6 @@
 import { TagInput } from './TagInput';
 import { CommentInput } from './CommentInput';
+import { analytics, EventAction } from '../../../lib/analytics';
 
 export interface NoteInputConfig {
   onSave?: (data: NoteInputData) => void;
@@ -70,7 +71,15 @@ export class NoteInput {
       placeholder: 'Type tag name and press Enter...',
       maxTags: 10,
       allowDuplicates: false,
-      onTagsChange: () => {},
+      onTagsChange: (tags: string[]) => {
+        // Track add tag event
+        if (tags.length > (initialTags?.length || 0)) {
+          analytics.trackNoteAction(EventAction.ADD_TAG, {
+            tagCount: tags.length,
+            newTag: tags[tags.length - 1]
+          });
+        }
+      },
       onInputChange: () => {},
       onInputFocus: () => {},
       onInputBlur: () => {},
@@ -111,7 +120,14 @@ export class NoteInput {
       placeholder: 'Add your notes or comments here...',
       showButton: true,
       buttonText: '+ Add Comment',
-      onCommentChange: () => {},
+      onCommentChange: (value: string) => {
+        // Track add comment event when comment has content
+        if (value && value.trim().length > 0) {
+          analytics.trackNoteAction(EventAction.ADD_COMMENT, {
+            commentLength: value.trim().length
+          });
+        }
+      },
       onCommentFocus: () => {},
       onCommentBlur: () => {},
       onSave: () => { this.handleSave(); }

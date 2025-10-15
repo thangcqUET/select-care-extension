@@ -25,20 +25,29 @@ function App() {
     }
   };
 
-  const handleSignIn = async () => {
-    // Generate a unique state parameter for security
-    const state = crypto.randomUUID();
-    await chrome.storage.local.set({ auth_state: state });
+  // const handleSignIn = async () => {
+  //   // Generate a unique state parameter for security
+  //   const state = crypto.randomUUID();
+  //   await chrome.storage.local.set({ auth_state: state });
 
-    // Redirect to web app with extension callback
-    const authUrl = `http://localhost:3001/?extension_auth=true&state=${state}`;
+  //   // Redirect to web app with extension callback
+  //   const authUrl = `http://localhost:3001/?extension_auth=true&state=${state}`;
     
+  //   // Open web app in new tab
+  //   chrome.tabs.create({ url: authUrl });
+    
+  //   // Close the popup
+  //   window.close();
+  // };
+  const handleGoToWebsite = async () => {
+    // const websiteUrl = `http://localhost:3001/`;
+    const websiteUrl = `https://main.djfc0uq2bj5xw.amplifyapp.com/`;
     // Open web app in new tab
-    chrome.tabs.create({ url: authUrl });
+    chrome.tabs.create({ url: websiteUrl });
     
     // Close the popup
     window.close();
-  };
+  }
 
   const handleSignOut = async () => {
     try {
@@ -75,27 +84,32 @@ function App() {
     }
   };
 
-  const openOptions = async () => {
-    try {
-      if (chrome.runtime.openOptionsPage) {
-        chrome.runtime.openOptionsPage();
-      } else {
-        chrome.tabs.create({ url: chrome.runtime.getURL('option_page/option.html') });
-      }
-      window.close();
-    } catch (error) {
-      console.error('Failed to open options page:', error);
-      chrome.tabs.create({ url: chrome.runtime.getURL('option_page/option.html') });
-      window.close();
-    }
-  };
+  //TODO enable settings later
+  // const openOptions = async () => {
+  //   try {
+  //     if (chrome.runtime.openOptionsPage) {
+  //       chrome.runtime.openOptionsPage();
+  //     } else {
+  //       chrome.tabs.create({ url: chrome.runtime.getURL('option_page/option.html') });
+  //     }
+  //     window.close();
+  //   } catch (error) {
+  //     console.error('Failed to open options page:', error);
+  //     chrome.tabs.create({ url: chrome.runtime.getURL('option_page/option.html') });
+  //     window.close();
+  //   }
+  // };
 
   // Loading state
   if (isCheckingAuth) {
     return (
       <div className="w-80 p-6 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg mx-auto mb-4 animate-pulse"></div>
+          <img
+            src={chrome.runtime.getURL('logo_select_care.svg')}
+            alt="SelectCare"
+            className="w-8 h-8 object-contain rounded-lg mx-auto mb-4 animate-pulse"
+          />
           <p className="text-sm text-gray-600">Checking authentication...</p>
         </div>
       </div>
@@ -108,21 +122,27 @@ function App() {
       <div className="w-80 p-6 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg"></div>
-            <h1 className="text-xl font-bold text-gray-900">SelectCare</h1>
+          <div>
+            <div className="flex items-center space-x-2 mb-1">
+              <img
+                src={chrome.runtime.getURL('logo_select_care.svg')}
+                alt="SelectCare"
+                className="w-8 h-8 object-contain"
+              />
+              <h1 className="text-xl font-bold text-gray-900">SelectCare</h1>
+            </div>
+            <p className="text-sm text-gray-600">Select your interest, shape your insight</p>
           </div>
           <div>
             <button
-              onClick={handleSignIn}
+              // onClick={handleSignIn} // TODO: enable sign-in later
+              onClick={handleGoToWebsite}
               className="text-sm bg-white/80 hover:bg-white text-gray-800 px-3 py-1 rounded-full shadow-sm"
             >
-              Login
+              Home
             </button>
           </div>
         </div>
-        <p className="text-sm text-gray-600">Sign in to start selecting content</p>
-
         {/* Show main features even when unauthenticated */}
         {/* Dashboard link */}
         <button
@@ -134,13 +154,13 @@ function App() {
         </button>
 
         {/* Settings link */}
-        <button
+        {/* <button
           onClick={openOptions}
           className="w-full bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 mb-3"
         >
           <span>⚙️</span>
           <span>Settings</span>
-        </button>
+        </button> */}
 
         {/* Instructions */}
         <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 mb-4 border border-gray-200">
@@ -181,10 +201,14 @@ function App() {
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center space-x-2 mb-1">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg"></div>
+            <img
+              src={chrome.runtime.getURL('logo_select_care.svg')}
+              alt="SelectCare"
+              className="w-8 h-8 object-contain"
+            />
             <h1 className="text-xl font-bold text-gray-900">SelectCare</h1>
           </div>
-          <p className="text-sm text-gray-600">Smart text selection and management</p>
+          <p className="text-sm text-gray-600">Select your interest, shape your insight</p>
           <p className="text-xs text-purple-600 font-medium">{userEmail}</p>
         </div>
         <div>
@@ -207,13 +231,13 @@ function App() {
       </button>
 
       {/* Settings link */}
-      <button
+      {/* <button
         onClick={openOptions}
         className="w-full bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 mb-3"
       >
         <span>⚙️</span>
         <span>Settings</span>
-      </button>
+      </button> */}
 
       {/* Instructions */}
       <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 mb-4 border border-gray-200">

@@ -1,11 +1,12 @@
 import { isUserTyping, throttle } from './utils';
 import { SelectPopup } from './components/SelectPopup';
 import { SelectionState } from './SelectionState';
+import { analytics } from '../lib/analytics';
 
 // Listen for authentication messages from web app
 window.addEventListener('message', (event) => {
   // Only accept messages from our web app domains
-  const allowedOrigins = ['http://localhost:3001', 'https://your-domain.com'];
+  const allowedOrigins = ['http://localhost:3001', 'https://main.djfc0uq2bj5xw.amplifyapp.com'];
   if (!allowedOrigins.includes(event.origin)) return;
   
   if (event.data.type === 'SELECTCARE_AUTH' && event.data.action === 'authenticate') {
@@ -72,6 +73,9 @@ document.addEventListener('mouseup', () => {
   setTimeout(() => {
     const selectedText = SelectionState.getInstance().selectedText;
     if (selectedText && selectedText.length > 0) {
+      // Track text selection event
+      analytics.trackTextSelection(selectedText.length, window.location.href);
+      
       showPopup();
       SelectionState.getInstance().saveSelection();
     }

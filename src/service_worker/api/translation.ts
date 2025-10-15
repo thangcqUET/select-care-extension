@@ -73,7 +73,8 @@ export async function translateDriver(req: TranslateRequest): Promise<TranslateR
     }
     const origin = (cfg && (cfg.apiOrigin || cfg.extensionApiOrigin || cfg.frontendOrigin)) || null;
     // Fallback origin if nothing configured. Keep simple to avoid dynamic imports.
-    const originCandidate = origin || 'http://localhost:3001';
+    // const originCandidate = origin || 'http://localhost:3001';
+    const originCandidate = origin || 'https://main.djfc0uq2bj5xw.amplifyapp.com';
     const base = originCandidate.replace(/\/$/, '');
     const candidates = [base];
     if (base.startsWith('http://')) {

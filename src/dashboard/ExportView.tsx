@@ -1,5 +1,6 @@
 import React from 'react';
 import { generators, defaultGenerator, exporterMeta } from './exporters';
+import { analytics, EventAction } from '../lib/analytics';
 
 type Props = {
   exportSelections: () => Promise<any[]>;
@@ -66,6 +67,11 @@ const ExportView: React.FC<Props> = ({ exportSelections, copyToClipboard }) => {
   React.useEffect(() => {
     if (exportWhat === 'learning') setTargetApp('anki');
     else if (exportWhat === 'note') setTargetApp('notion');
+    
+    // Track export app selection
+    analytics.trackExportAction(EventAction.EXPORT_APP_SELECTED, targetApp, {
+      exportType: exportWhat
+    });
   }, [exportWhat]);
 
   // drag and drop refs/handlers for reordering
@@ -316,6 +322,15 @@ const ExportView: React.FC<Props> = ({ exportSelections, copyToClipboard }) => {
                 const all = await exportSelections();
                 const items = exportWhat === 'learning' ? all.filter((s: any) => s.type === 'learn') : all.filter((s: any) => s.type === 'note');
                 const payload = buildPayload(items);
+                
+                // Track export action
+                const exportAction = exportWhat === 'learning' ? EventAction.EXPORT_LEARN : EventAction.EXPORT_NOTE;
+                analytics.trackExportAction(exportAction, targetApp, {
+                  method: m,
+                  itemCount: items.length,
+                  format: selectedFormat
+                });
+                
                 if (m === 'file') download(payload);
                 else if (m === 'copy') {
                   await copyToClipboard(payload);

@@ -4,6 +4,7 @@ import ManageView from './ManageView';
 import ExportView from './ExportView';
 import LearnView from './LearnView';
 import StatsView from './StatsView';
+import { analytics, EventAction } from '../lib/analytics';
 
 type View = 'manage' | 'export' | 'learn' | 'stats';
 
@@ -16,6 +17,11 @@ const Dashboard: React.FC = () => {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [view, setView] = useState<View>('manage');
+
+  // Track sidebar opened on mount
+  useEffect(() => {
+    analytics.trackSidebarAction(EventAction.SIDEBAR_OPENED);
+  }, []);
 
   // Load selections from IndexedDB instead of mock data
   useEffect(() => {
@@ -90,14 +96,41 @@ const Dashboard: React.FC = () => {
     });
 
     setFilteredSelections(filtered);
+    
+    // Track search when query changes
+    if (searchQuery) {
+      analytics.trackSidebarAction(EventAction.SEARCH_PERFORMED, {
+        query: searchQuery,
+        resultCount: filtered.length
+      });
+    }
+    
+    // Track filter when action type changes
+    if (selectedActionType !== 'all') {
+      analytics.trackSidebarAction(EventAction.FILTER_APPLIED, {
+        filterType: 'actionType',
+        actionType: selectedActionType,
+        resultCount: filtered.length
+      });
+    }
   }, [selections, searchQuery, selectedTags, selectedActionType]);
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
+    setSelectedTags(prev => {
+      const newTags = prev.includes(tag) 
         ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    );
+        : [...prev, tag];
+      
+      // Track filter applied
+      analytics.trackSidebarAction(EventAction.FILTER_APPLIED, {
+        filterType: 'tag',
+        tag,
+        action: prev.includes(tag) ? 'remove' : 'add',
+        totalTags: newTags.length
+      });
+      
+      return newTags;
+    });
   };
 
   const clearFilters = () => {
@@ -114,6 +147,13 @@ const Dashboard: React.FC = () => {
       });
       
       if (response.success) {
+        // Track delete action
+        const selection = selections.find(s => s.selection_id === id);
+        analytics.trackSidebarAction(EventAction.DELETE_ITEM, {
+          itemType: selection?.type,
+          itemId: id
+        });
+        
         // Remove from local state
         const updatedSelections = selections.filter(s => s.selection_id !== id);
         setSelections(updatedSelections);
@@ -130,6 +170,18 @@ const Dashboard: React.FC = () => {
     try {
       const response = await chrome.runtime.sendMessage({ action: 'updateSelection', data: { selection: updatedSelection } });
       if (response && response.success) {
+        // Track edit action
+        const isLearnType = updatedSelection.type === 'learn' || updatedSelection.tags.includes('fn_learn');
+        analytics.trackSidebarAction(
+          isLearnType ? EventAction.EDIT_LEARN_ITEM : EventAction.EDIT_NOTE_ITEM,
+          {
+            itemType: updatedSelection.type,
+            itemId: updatedSelection.selection_id,
+            hasComment: !!updatedSelection.comments,
+            tagCount: updatedSelection.tags.filter(t => !t.startsWith('fn_')).length
+          }
+        );
+        
         // update local state
         const updated = selections.map(s => s.selection_id === updatedSelection.selection_id ? updatedSelection : s);
         setSelections(updated);
@@ -193,9 +245,16 @@ const Dashboard: React.FC = () => {
       <div className="bg-white/70 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">SelectCare</h1>
-              <p className="text-xs text-gray-600">Manage your selections</p>
+            <div className="flex items-center space-x-3">
+              <img
+                src={chrome.runtime.getURL('logo_select_care.svg')}
+                alt="SelectCare"
+                className="w-10 h-10 object-contain"
+              />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">SelectCare</h1>
+                <p className="text-xs text-gray-600">Manage your selections</p>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               {/* Desktop / wide: inline tabs with horizontal scroll to avoid wrapping */}
