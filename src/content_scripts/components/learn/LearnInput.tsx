@@ -280,6 +280,9 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
   // Cache meanings by a key combining selectedText + sourceLang + targetLang
   const cacheByLangPair = React.useRef<Map<string, { meanings: Record<string, any[]>; parts: string[]; syns: string[]; ants: string[]; phonetic: any }>>(new Map());
 
+  // request id to avoid race conditions from out-of-order async responses
+  const inflightReqId = React.useRef(0);
+
   const makeCacheKey = (text?: string, src?: string, tgt?: string) => `${(text||'').split('\n')[0].trim()}|${src||'auto'}|${tgt||'en'}`;
 
 
@@ -302,7 +305,8 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
   };
   // Debounced translate -> inject translation as a meaning when target differs from source
   // lookupDictionary extracts the dictionary population logic into a reusable function
-  const lookupDictionary = async (textToLookup: string) => {
+  const lookupDictionary = async (textToLookup: string, reqId?: number) => {
+    const myReq = typeof reqId === 'number' ? reqId : inflightReqId.current;
     let mounted = true;
     try {
       // If the current language pair implies a translation (target !== source), skip dictionary lookup
@@ -317,8 +321,10 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
           resultCount: data?.length || 0
         });
         
-        setLoading(false);
-        if (!mounted) return;
+  // ignore if this response is stale
+  if (myReq !== inflightReqId.current) return;
+  setLoading(false);
+  if (!mounted) return;
         if (!data || !Array.isArray(data) || data.length === 0) {
           setMeanings({ noun: [] });
           setParts(['noun']);
@@ -326,7 +332,7 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
           setAnts([]);
           setPhonetic(null);
           // onEnsureParts && onEnsureParts(['noun']);
-          if (mounted) setInlineMessage({ text: `No dictionary meanings found for "${(textToLookup||'').split('\n')[0].trim()}". Use "Custom Definition" to add your own.`, kind: 'info' });
+          if (mounted && myReq === inflightReqId.current) setInlineMessage({ text: `No dictionary meanings found for "${(textToLookup||'').split('\n')[0].trim()}". Use "Custom Definition" to add your own.`, kind: 'info' });
           return;
         }
 
@@ -351,7 +357,8 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
             if (found) { preferred = found; break; }
           }
         }
-        setPhonetic(preferred || null);
+  if (myReq !== inflightReqId.current) return;
+  setPhonetic(preferred || null);
 
         const entry = data[0];
         const newParts: string[] = [];
@@ -362,8 +369,9 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
           });
         }
         if (newParts.length === 0) newParts.push('noun');
-        setParts(newParts);
-        setActivePart(newParts[0]);
+  if (myReq !== inflightReqId.current) return;
+  setParts(newParts);
+  setActivePart(newParts[0]);
 
         // Build meanings map
         const map: Record<string, any[]> = {};
@@ -381,9 +389,10 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
           });
         });
 
-        setMeanings(map);
-        setSyns(Array.from(globalSyns));
-        setAnts(Array.from(globalAnts));
+  if (myReq !== inflightReqId.current) return;
+  setMeanings(map);
+  setSyns(Array.from(globalSyns));
+  setAnts(Array.from(globalAnts));
         // onEnsureParts && onEnsureParts(newParts);
         // persist into cache for this language pair
         try {
@@ -392,7 +401,7 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
         } catch (e) { /* ignore cache write errors */ }
       } catch (err) {
         console.error('learn fetch error', err);
-        if (mounted) setInlineMessage({ text: 'Failed to load dictionary data', kind: 'error' });
+        if (mounted && myReq === inflightReqId.current) setInlineMessage({ text: 'Failed to load dictionary data', kind: 'error' });
       } finally {
         // leave loading control to caller
       }
@@ -402,8 +411,9 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
     return;
   };
   // Translate the selected text via background service and insert as a meaning.
-  const translateText = async (textToTranslate: string, localTargetLang: string, localSourceLang: string) => {
-    console.log('Translating', { textToTranslate, localTargetLang, localSourceLang });
+  const translateText = async (textToTranslate: string, localTargetLang: string, localSourceLang: string, reqId?: number) => {
+    const myReq = typeof reqId === 'number' ? reqId : inflightReqId.current;
+    console.log('Translating', { textToTranslate, localTargetLang, localSourceLang, reqId: myReq });
     
     // Track translation request
     analytics.trackFormAction(EventAction.TRANSLATE_REQUESTED, {
@@ -419,6 +429,8 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
           chrome.runtime.sendMessage({ action: 'translate', text: textToTranslate.trim(), target: localTargetLang, source: localSourceLang }, (resp: any) => {
             if (!mounted || !resp) { resolve(); return; }
             try {
+              // ignore if this response is stale
+              if (myReq !== inflightReqId.current) { resolve(); return; }
               setLoading(false);
               if (resp.success && resp.result) {
                 let text = '';
@@ -440,7 +452,7 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
                   pos = tr?.partOfSpeech ?? tr?.part_of_speech ?? null;
                 }
 
-                if (text && mounted) {
+                if (text && mounted && myReq === inflightReqId.current) {
                   const usePos = pos || 'noun';
                   setParts((prev) => (prev.includes(usePos) ? prev : [...prev, usePos]));
                   setActivePart(usePos);
@@ -481,7 +493,7 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
   };
 
   // detect, lookup, or translate whenever selectedText, sourceLang, or targetLang changes
-  const getDefinationAndTranslate = async () => {
+  const getDefinationAndTranslate = async (reqId?: number) => {
     if (!selectedText || selectedText.trim().length === 0) return;
     // If sourceLang is 'auto', detect language first
     const doDetect = sourceLang === 'auto';
@@ -503,9 +515,9 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
       }
     }
     if (targetLang && targetLang !== sourceLang && sourceLang !== 'auto') {
-      translateText(selectedText, targetLang, doDetect ? (newSourceLang.detected || 'auto') : sourceLang);
+      translateText(selectedText, targetLang, doDetect ? (newSourceLang.detected || 'auto') : sourceLang, reqId);
     } else {
-      lookupDictionary(selectedText);
+      lookupDictionary(selectedText, reqId);
     }
   }
 
@@ -558,8 +570,11 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
     } catch (e) {
       // ignore cache read errors and proceed to fetch
     }
+    // bump request id to mark this request as the newest
+    inflightReqId.current += 1;
+    const reqId = inflightReqId.current;
     setLoading(true);
-    getDefinationAndTranslate()
+    getDefinationAndTranslate(reqId)
   }, [selectedText, sourceLang, targetLang]);
 
 
