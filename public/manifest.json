@@ -24,8 +24,7 @@
   "permissions": [
     "storage",
     "activeTab",
-    "sidePanel",
-    "scripting"
+    "sidePanel"
   ],
   "host_permissions": [
     "https://main.djfc0uq2bj5xw.amplifyapp.com/*"
