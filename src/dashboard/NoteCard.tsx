@@ -304,7 +304,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ selection, userStats }) => {
       ctx.fillStyle = brandGradient;
       ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
       ctx.textAlign = 'right';
-      ctx.fillText('✨ Saved with SelectCare', cardX + cardWidth - 40, metaY + 70);
+  ctx.fillText('✨ Saved with Select Care', cardX + cardWidth - 40, metaY + 70);
       ctx.textAlign = 'left'; // Reset alignment
 
       return canvas.toDataURL('image/png', 1.0); // Maximum quality
@@ -426,7 +426,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ selection, userStats }) => {
             {/* Branding */}
             <div className="mt-4 pt-3 border-t border-gray-100">
               <div className="text-xs font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                ✨ Saved with SelectCare
+                ✨ Saved with Select Care
               </div>
             </div>
           </div>

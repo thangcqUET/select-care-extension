@@ -1,11 +1,11 @@
-# SelectCare Browser Extension
+# Select Care Browser Extension
 
 A powerful Chrome extension for intelligent text se### 📊 **Sidebar Dashboard**
 - **Chrome Sidebar**: Integrated sidebar panel for managing selections
 - **Compact Design**: Optimized layout for narrow sidebar view
 - **Real-time Filtering**: Search and filter by tags or action types
 - **Quick Access**: One-click access from extension popup
-- **Persistent View**: Sidebar stays open while browsing management. SelectCare allows users to capture, categorize, and interact with selected text through an intuitive popup interface.
+- **Persistent View**: Sidebar stays open while browsing management. Select Care allows users to capture, categorize, and interact with selected text through an intuitive popup interface.
 
 ## ✨ Features
 
@@ -111,7 +111,7 @@ A React-based dashboard for managing and viewing all saved selections:
 
 ### **Access Dashboard**
 - Open `chrome://extensions/`
-- Find "SelectCare Extension"
+- Find "Select Care Extension"
 - Click "Options" or access via `dashboard.html`
 
 ## 🏷️ **Tag System**

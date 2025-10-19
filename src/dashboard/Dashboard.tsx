@@ -248,11 +248,11 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center space-x-3">
               <img
                 src={chrome.runtime.getURL('logo_select_care.svg')}
-                alt="SelectCare"
+                alt="Select Care"
                 className="w-10 h-10 object-contain"
               />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">SelectCare</h1>
+                <h1 className="text-xl font-bold text-gray-900">Select Care</h1>
                 <p className="text-xs text-gray-600">Manage your selections</p>
               </div>
             </div>

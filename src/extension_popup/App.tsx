@@ -107,7 +107,7 @@ function App() {
         <div className="text-center">
           <img
             src={chrome.runtime.getURL('logo_select_care.svg')}
-            alt="SelectCare"
+            alt="Select Care"
             className="w-8 h-8 object-contain rounded-lg mx-auto mb-4 animate-pulse"
           />
           <p className="text-sm text-gray-600">Checking authentication...</p>
@@ -126,10 +126,10 @@ function App() {
             <div className="flex items-center space-x-2 mb-1">
               <img
                 src={chrome.runtime.getURL('logo_select_care.svg')}
-                alt="SelectCare"
+                alt="Select Care"
                 className="w-8 h-8 object-contain"
               />
-              <h1 className="text-xl font-bold text-gray-900">SelectCare</h1>
+              <h1 className="text-xl font-bold text-gray-900">Select Care</h1>
             </div>
             <p className="text-sm text-gray-600">Select your interest, shape your insight</p>
           </div>
@@ -188,7 +188,7 @@ function App() {
 
         {/* Footer */}
         <div className="text-center mt-4">
-          <p className="text-xs text-gray-400">v1.0.0 • SelectCare Extension</p>
+          <p className="text-xs text-gray-400">v1.0.0 • Select Care Extension</p>
         </div>
       </div>
     );
@@ -203,10 +203,10 @@ function App() {
           <div className="flex items-center space-x-2 mb-1">
             <img
               src={chrome.runtime.getURL('logo_select_care.svg')}
-              alt="SelectCare"
+              alt="Select Care"
               className="w-8 h-8 object-contain"
             />
-            <h1 className="text-xl font-bold text-gray-900">SelectCare</h1>
+            <h1 className="text-xl font-bold text-gray-900">Select Care</h1>
           </div>
           <p className="text-sm text-gray-600">Select your interest, shape your insight</p>
           <p className="text-xs text-purple-600 font-medium">{userEmail}</p>
@@ -274,7 +274,7 @@ function App() {
 
       {/* Footer */}
       <div className="text-center mt-4">
-        <p className="text-xs text-gray-400">v1.0.0 • SelectCare Extension</p>
+  <p className="text-xs text-gray-400">v1.0.0 • Select Care Extension</p>
       </div>
     </div>
   );
