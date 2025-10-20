@@ -43,21 +43,27 @@ export class FormPopup {
   private setupFormStyles() {
     const style = document.createElement('style');
     style.textContent = `
-      .form-popup {
-        position: fixed;
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        border-radius: 12px;
-        transform: scale(0.3) translate(-50%, 0);
-        
-        padding: 12px;
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(100px);
-        border: 1px solid rgba(63, 63, 63, 0.3);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        color: #000;
+  .form-popup {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    border-radius: 12px;
+    transform: scale(0.3) translate(-50%, 0);
+
+    padding: 12px;
+    /* Use a mostly-opaque light surface to guarantee contrast on dark pages */
+    background: rgba(255, 255, 255, 0.94);
+    /* keep a subtle blur but don't rely on full transparency for readability */
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(63, 63, 63, 0.12);
+    box-shadow: 0 6px 26px rgba(0, 0, 0, 0.18);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    /* Force a dark text color so it remains readable on both light and dark page backgrounds */
+    color: #0c1828;
+    -webkit-text-fill-color: #0c1828;
+    mix-blend-mode: normal;
+    isolation: isolate;
   opacity: 0;
         /* animate left/top for a gentle movement when repositioning; keep opacity and transform transitions for show/hide */
   transition: left 180ms ease, top 180ms ease, opacity 220ms ease, transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -65,9 +71,9 @@ export class FormPopup {
         /* utility class to set position or initial placement without transition */
         transition: left 180ms ease, top 180ms ease, opacity 220ms ease, transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
         will-change: left, top, transform, opacity;
-        /* ensure popup stays above page content and receives pointer events */
-        z-index: 10001;
-        pointer-events: auto;
+  /* ensure popup stays above page content and receives pointer events */
+  z-index: 10001;
+  pointer-events: auto;
         width: 320px;
         box-sizing: border-box;
         /* allow flex children to shrink below their content width */
@@ -75,6 +81,11 @@ export class FormPopup {
         /* ensure long words or data URLs don't expand the popup */
         word-break: break-word;
         overflow-wrap: anywhere;
+      }
+
+      /* Ensure all descendants inherit the explicit text color and do not blend with the page */
+      .form-popup, .form-popup * {
+        mix-blend-mode: normal !important;
       }
 
       .form-popup.no-transition {
@@ -104,12 +115,11 @@ export class FormPopup {
       .form-input {
         width: 100%;
         padding: 8px 10px;
-        border: 1px solid rgba(63, 63, 63, 0.2);
+        border: 1px solid rgba(63, 63, 63, 0.12);
         border-radius: 8px;
         font-size: 13px;
-        background: rgba(255, 255, 255, 0.6);
-        backdrop-filter: blur(5px);
-        color: #000;
+        background: rgba(255, 255, 255, 0.98);
+        color: inherit;
         margin-bottom: 8px;
         box-sizing: border-box;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -215,6 +225,7 @@ export class FormPopup {
       .learn-root { max-width: 320px; width: 100%; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #000; overflow: visible; }
 .translate-controls { display:flex; gap:8px; align-items:center; }
 .translate-controls select { flex:1; padding:6px 8px; border-radius:8px; border:1px solid rgba(63,63,63,0.12); background: rgba(255,255,255,0.6); }
+.translate-controls select option { color: #000; background: #fff; }
 .badges { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
 .badge { padding:6px 8px; border-radius:999px; background: rgba(0,0,0,0.04); cursor:pointer; font-size:12px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; border: none; }
 .badge.active { border: 1px solid rgba(63,63,63,0.2); }
