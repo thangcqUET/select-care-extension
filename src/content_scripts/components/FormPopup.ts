@@ -44,6 +44,11 @@ export class FormPopup {
   private setupFormStyles() {
     const style = document.createElement('style');
     style.textContent = `
+    :host {
+      all: initial; /* hoặc all: revert */
+      font-family: "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif !important;
+      color: #000;
+    }
   .form-popup {
     position: fixed;
     display: flex;
