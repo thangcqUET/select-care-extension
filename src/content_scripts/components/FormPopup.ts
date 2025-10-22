@@ -62,7 +62,6 @@ export class FormPopup {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     /* Force a dark text color so it remains readable on both light and dark page backgrounds */
     color: #0c1828;
-    -webkit-text-fill-color: #0c1828;
     mix-blend-mode: normal;
     isolation: isolate;
   opacity: 0;
