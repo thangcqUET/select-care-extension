@@ -312,7 +312,7 @@ export class FormPopup {
     switch (this.actionType) {
       case 'learn':
         icon.textContent = '🔡';
-        title.textContent = t('btnLearn');
+        title.textContent = t('titleLearn');
         break;
       case 'note':
         icon.textContent = '📌';
@@ -509,7 +509,7 @@ export class FormPopup {
   private getSaveButtonText(): string {
     switch (this.actionType) {
       case 'learn':
-        return t('btnLearn');
+        return t('btnSaveLearn');
       case 'note':
         return t('btnNote');
       case 'chat':

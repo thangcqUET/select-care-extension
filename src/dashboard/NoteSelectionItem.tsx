@@ -1,6 +1,7 @@
 import React from 'react';
 import type { BasedSelection } from '../content_scripts/types';
 import NoteCard from './NoteCard';
+import { t } from '../lib/i18n';
 
 interface Props {
   selection: BasedSelection;
@@ -63,10 +64,10 @@ const NoteSelectionItem: React.FC<Props> = ({ selection, expandedComments, onTog
 
       {isEditing ? (
         <div className="mb-2 space-y-2">
-          <label className="text-xs text-gray-600">Comments (one per line)</label>
+          <label className="text-xs text-gray-600">{t('editComments')}</label>
           <textarea value={editComments} onChange={(e) => setEditComments(e.target.value)} className="w-full p-2 border rounded text-sm" rows={3} />
-          <label className="text-xs text-gray-600">Tags (comma separated)</label>
-          <input value={editTags} onChange={(e) => setEditTags(e.target.value)} className="w-full p-2 border rounded text-sm" placeholder="tags, comma separated" />
+          <label className="text-xs text-gray-600">{t('editTags')}</label>
+          <input value={editTags} onChange={(e) => setEditTags(e.target.value)} className="w-full p-2 border rounded text-sm" placeholder={t('addTagsPlaceholder')} />
           <div className="flex items-center space-x-2">
             <button
               onClick={async () => {
@@ -79,9 +80,9 @@ const NoteSelectionItem: React.FC<Props> = ({ selection, expandedComments, onTog
               }}
               className="px-2 py-1 text-sm bg-green-100 text-green-800 rounded"
             >
-              Save
+              {t('save')}
             </button>
-            <button onClick={() => { setIsEditing(false); setEditText(selection.text || ''); setEditTags((selection.tags || []).filter((t: string) => !t.startsWith('fn_')).join(', ')); setEditComments((selection.comments || []).join('\n')); }} className="px-2 py-1 text-sm bg-gray-100 rounded">Cancel</button>
+            <button onClick={() => { setIsEditing(false); setEditText(selection.text || ''); setEditTags((selection.tags || []).filter((t: string) => !t.startsWith('fn_')).join(', ')); setEditComments((selection.comments || []).join('\n')); }} className="px-2 py-1 text-sm bg-gray-100 rounded">{t('cancel')}</button>
           </div>
         </div>
       ) : (
@@ -101,7 +102,7 @@ const NoteSelectionItem: React.FC<Props> = ({ selection, expandedComments, onTog
       {selection.comments && selection.comments.length > 0 && (
         <div className="mb-2">
           <button onClick={onToggleComments} className="text-xs text-blue-600 hover:text-blue-800 font-medium mb-1 cursor-pointer bg-transparent border-none p-0">
-            {expandedComments ? 'Hide Comments' : 'Show Comments'}
+            {expandedComments ? t('hideComments') : t('showComments')}
           </button>
           {expandedComments && (
             <div className="mt-1">
@@ -115,7 +116,7 @@ const NoteSelectionItem: React.FC<Props> = ({ selection, expandedComments, onTog
 
       <div className="mb-2">
         <button onClick={onToggleCard} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer bg-transparent border-none p-0">
-          {expandedCard ? 'Hide Card' : '✨ Generate Share Card'}
+          {expandedCard ? t('hideCard') : t('generateShareCard')}
         </button>
         {expandedCard && (
           <NoteCard selection={selection as any} userStats={getUserStats()} />

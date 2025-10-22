@@ -2,6 +2,7 @@ import React from 'react';
 import { BasedSelection } from '../content_scripts/types';
 import LearnSelectionItem from './LearnSelectionItem';
 import NoteSelectionItem from './NoteSelectionItem';
+import { t } from '../lib/i18n';
 
 type Props = {
   filteredSelections: BasedSelection[];
@@ -121,43 +122,43 @@ const ManageView: React.FC<Props> = ({
     <>
       <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-gray-200">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-900">Filters</h2>
+          <h2 className="text-sm font-semibold text-gray-900">{t('filters')}</h2>
           <div className="flex items-center space-x-2">
             <button
               onClick={refreshSelections}
               className="text-sm text-blue-600 hover:text-blue-800 px-2 py-1 rounded"
-              title="Refresh data"
+              title={t('refresh')}
             >
               🔄
             </button>
-            <div className="text-sm text-gray-500">{filteredSelections.length} items</div>
+            <div className="text-sm text-gray-500">{filteredSelections.length} {t('items')}</div>
             <button
               onClick={clearFilters}
               className="text-xs text-blue-600 hover:text-blue-800"
             >
-              Clear
+              {t('clearFilters')}
             </button>
             <button
               onClick={() => setStatsExpanded(prev => !prev)}
               className="text-xs text-gray-600 hover:text-gray-800 px-2 py-1 rounded"
               title="Toggle stats"
             >
-              {statsExpanded ? 'Hide Stats' : 'Show Stats'}
+              {statsExpanded ? t('hideStats') : t('showStats')}
             </button>
           </div>
         </div>
 
   {statsExpanded && (
   <div className="mb-4 p-3 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg border">
-          <h2 className="text-sm font-bold text-gray-900 mb-2">📊 Your Stats</h2>
+          <h2 className="text-sm font-bold text-gray-900 mb-2">📊 {t('statsYourStats')}</h2>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="text-center">
               <div className="text-lg font-bold text-green-600">{getUserStats().todayCount}</div>
-              <div className="text-gray-600">Today</div>
+              <div className="text-gray-600">{t('statsToday')}</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-indigo-600">{getUserStats().totalSelections}</div>
-              <div className="text-gray-600">Total</div>
+              <div className="text-gray-600">{t('statsTotal')}</div>
             </div>
           </div>
   </div>
@@ -168,7 +169,7 @@ const ManageView: React.FC<Props> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search..."
+            placeholder={t('filterPlaceholder')}
             className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -179,16 +180,16 @@ const ManageView: React.FC<Props> = ({
             onChange={(e) => setSelectedActionType(e.target.value)}
             className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="all">All Types</option>
-            <option value="learn">🌐 Learn</option>
-            <option value="note">📝 Notes</option>
+            <option value="all">{t('allTypes')}</option>
+            <option value="learn">🌐 {t('btnLearn')}</option>
+            <option value="note">📝 {t('btnNote')}</option>
             {/* <option value="chat">🤖 AI</option> */}
             {/* TODO: Implement chat selection */}
           </select>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-2">Tags</label>
+          <label className="block text-xs font-medium text-gray-700 mb-2">{t('tags')}</label>
           <div className="max-h-24 overflow-y-auto pr-2 flex flex-wrap gap-1">
             {sortedTags.map(tag => (
               <button
@@ -211,9 +212,9 @@ const ManageView: React.FC<Props> = ({
         {filteredSelections.length === 0 ? (
           <div className="text-center py-8">
             <div className="text-4xl mb-2">📋</div>
-            <p className="text-gray-500 text-sm">No selections found</p>
+            <p className="text-gray-500 text-sm">{t('dashboardNoItems')}</p>
             <p className="text-gray-400 text-xs mt-1">
-              {selections.length === 0 ? 'Start selecting text on web pages!' : 'Try adjusting your filters'}
+              {selections.length === 0 ? t('startSelecting') : t('noItemsAdjustFilters')}
             </p>
           </div>
         ) : (

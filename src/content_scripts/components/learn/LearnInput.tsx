@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 // import CSS as raw text so we can inject it into the popup ShadowRoot
 import { fetchDictionary } from '../../api/dictionary';
 import { analytics, EventAction } from '../../../lib/analytics';
+import { t } from '../../../lib/i18n';
 
 type Props = {
   selectedText?: string;
@@ -13,11 +14,11 @@ type DictionaryEntry = any;
 
 const TranslateControls: React.FC<{ source: string; target: string; onSourceChange: (s: string) => void; onTargetChange: (t: string) => void; }> = ({ source, target, onSourceChange, onTargetChange }) => (
   <div className="translate-controls">
-    <select title="Current Language" value={source} onChange={(e) => onSourceChange(e.target.value)}>
+    <select title={t('currentLanguage')} value={source} onChange={(e) => onSourceChange(e.target.value)}>
       <option value="auto">auto</option>
       <option value="en">en</option>
     </select>
-    <select title="Target Language" value={target} onChange={(e) => onTargetChange(e.target.value)}>
+    <select title={t('targetLanguage')} value={target} onChange={(e) => onTargetChange(e.target.value)}>
       <option value="vi">vi</option>
       <option value="en">en</option>
       <option value="zh">zh</option>
@@ -83,7 +84,7 @@ const MeaningItem: React.FC<MeaningProps> = ({ pos, index, title, definition = '
         <div className="right">
           <span className="mark-wrap">
             <button className={`form-button ${marked ? 'form-button-marked' : ''}`} onClick={(e) => { e.stopPropagation(); onToggleMark && onToggleMark(); }}>{marked ? '🟢' : '◯'}</button>
-            <span className="tooltip">{marked ? 'Marked' : 'Mark to Save'}</span>
+            <span className="tooltip">{marked ? t('marked') : t('markToSave')}</span>
           </span>
           <span className="toggle-icon" onClick={(e) => { e.stopPropagation(); handleToggle(); }}>{localExpanded ? '▴' : '▾'}</span>
         </div>
@@ -91,10 +92,10 @@ const MeaningItem: React.FC<MeaningProps> = ({ pos, index, title, definition = '
       <div className="body" style={{ display: localExpanded ? 'block' : 'none' }}>
   <textarea className="form-input" rows={3} value={definition} onChange={(e) => onChange && onChange({ definition: e.target.value })} ref={(el) => { if (onRegisterDef) onRegisterDef(el as HTMLTextAreaElement | null); }} />
         {example ? <>
-          <div className="small">Example</div>
+          <div className="small">{t('example')}</div>
           <textarea className="form-input" rows={2} value={example} onChange={(e) => onChange && onChange({ example: e.target.value })} ref={(el) => { if (onRegisterExample) onRegisterExample(el as HTMLTextAreaElement | null); }} />
         </> : (
-          <button className="form-button small" onClick={(ev) => { ev.preventDefault(); onChange && onChange({ example: ' ' }); /* parent's effect will focus */ }}>Add example</button>
+          <button className="form-button small" onClick={(ev) => { ev.preventDefault(); onChange && onChange({ example: ' ' }); /* parent's effect will focus */ }}>{t('addExample')}</button>
         )}
         {/* <div className="form-actions">
           <button className="form-button" onClick={(e) => { e.preventDefault(); onAttachImage && onAttachImage(pos, index); }}>Add Image</button>
@@ -149,8 +150,8 @@ const Tabs: React.FC<{
               <div className="learn-note small" style={{ marginBottom: 6, padding: '6px 8px', borderRadius: 8, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.18)', color: 'rgba(12,24,40,0.9)', display: 'flex', gap: 8, alignItems: 'center' }}>
                 <span style={{ flex: 1 }}>
                   { (sourceLang && targetLang && sourceLang === targetLang) ? 
-                    `${(meanings[p] || []).length} definitions available — select at least one to save and learn.` : 
-                    `Mark meanings to save and learn.` }
+                    `${(meanings[p] || []).length} ${t('definitionsAvailable')}` : 
+                    t('markMeaningsToSave') }
                 </span>
               </div>
               <div className="meanings-wrap" ref={(el) => onRegisterWrap && onRegisterWrap(p, el as HTMLElement | null)}>
@@ -175,7 +176,7 @@ const Tabs: React.FC<{
                   />
                 )):<></>}
               </div>
-              <button className="form-button" style={{ marginTop: 6 }} onClick={() => onCustom && onCustom(p)}>Custom Definition</button>
+              <button className="form-button" style={{ marginTop: 6 }} onClick={() => onCustom && onCustom(p)}>{t('customDefinition')}</button>
             </div>
           )): (
                   // show skeleton only for active tab while loading
@@ -199,12 +200,12 @@ const SynList: React.FC<{ syns: string[]; ants: string[] }> = ({ syns, ants }) =
   return (
     <div className="syn-list">
       <div className="syn-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => setCollapsed(!collapsed)}>
-        <div className="small">Synonyms & Antonyms</div>
+        <div className="small">{t('synonymsAntonyms')}</div>
         <div className="small">{collapsed ? '▾' : '▴'}</div>
       </div>
       <div className="syn-content" style={{ display: collapsed ? 'none' : 'block', marginTop: 8 }}>
-        <div className="small">Synonyms: <span>{syns.join(', ')}</span></div>
-        <div className="small">Antonyms: <span>{ants.join(', ')}</span></div>
+        <div className="small">{t('synonyms')}: <span>{syns.join(', ')}</span></div>
+        <div className="small">{t('antonyms')}: <span>{ants.join(', ')}</span></div>
       </div>
     </div>
   );
@@ -250,7 +251,7 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
     setMeanings((prev) => {
       const list = prev[pos] ? [...prev[pos]] : [];
       const newIdx = list.length;
-      list.push({ title: '', definition: 'Define here...', example: '', expanded: true });
+      list.push({ title: '', definition: t('defineHere'), example: '', expanded: true });
       focusKey = `${pos}:${newIdx}`;
       return { ...prev, [pos]: list };
     });
@@ -332,7 +333,7 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
           setAnts([]);
           setPhonetic(null);
           // onEnsureParts && onEnsureParts(['noun']);
-          if (mounted && myReq === inflightReqId.current) setInlineMessage({ text: `No dictionary meanings found for "${(textToLookup||'').split('\n')[0].trim()}". Use "Custom Definition" to add your own.`, kind: 'info' });
+          if (mounted && myReq === inflightReqId.current) setInlineMessage({ text: t('noDictionaryFound'), kind: 'info' });
           return;
         }
 
@@ -856,7 +857,7 @@ const LearnInput = React.forwardRef((props: Props, ref: React.Ref<any>) => {
 
       {phonetic ? (
         <div className="small" style={{ marginTop: 8 }}>
-          <strong>Phonetics:</strong> {phonetic.text || ''}
+          <strong>{t('phonetics')}:</strong> {phonetic.text || ''}
           {phonetic.audio ? <button className="form-button small" onClick={() => handlePlayAudio(phonetic.audio)}>🔊</button> : null}
         </div>
       ) : null}

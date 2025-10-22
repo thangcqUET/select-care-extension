@@ -1,6 +1,7 @@
 import { TagInput } from './TagInput';
 import { CommentInput } from './CommentInput';
 import { analytics, EventAction } from '../../../lib/analytics';
+import { t } from '../../../lib/i18n';
 
 export interface NoteInputConfig {
   onSave?: (data: NoteInputData) => void;
@@ -58,7 +59,7 @@ export class NoteInput {
     sectionIcon.style.fontSize = '14px';
     
     const tagsLabel = document.createElement('label');
-    tagsLabel.textContent = 'Tags';
+    tagsLabel.textContent = t('tags');
     tagsLabel.style.fontSize = '12px';
     tagsLabel.style.fontWeight = '600';
     tagsLabel.style.color = '#000';
@@ -68,7 +69,7 @@ export class NoteInput {
     sectionHeader.appendChild(tagsLabel);
     
     this.tagInput = new TagInput({
-      placeholder: 'Type tag name and press Enter...',
+      placeholder: t('addTagsPlaceholder'),
       maxTags: 10,
       allowDuplicates: false,
       onTagsChange: (tags: string[]) => {
@@ -117,9 +118,9 @@ export class NoteInput {
     
     // Create comment input component
     this.commentInput = new CommentInput({
-      placeholder: 'Add your notes or comments here...',
+      placeholder: t('addCommentsPlaceholder'),
       showButton: true,
-      buttonText: '+ Add Comment',
+      buttonText: t('addCommentButton'),
       onCommentChange: () => {},
       onCommentFocus: () => {},
       onCommentBlur: (value: string) => {

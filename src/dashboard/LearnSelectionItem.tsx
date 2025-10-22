@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { LearnSpecificData } from '../content_scripts/types';
+import { t } from '../lib/i18n';
 
 interface Props {
   selection: LearnSpecificData;
@@ -67,9 +68,9 @@ const LearnSelectionItem: React.FC<Props> = ({ selection, expandedComments, onTo
 
         {isEditing ? (
           <div className="mb-2 space-y-2">
-            <label className="text-xs text-gray-600">Selected text</label>
-              <label className="text-xs text-gray-600">Tags (comma separated)</label>
-              <input value={editTags} onChange={(e) => setEditTags(e.target.value)} className="w-full p-2 border rounded text-sm" placeholder="tags, comma separated" />
+            <label className="text-xs text-gray-600">{t('editSelectedText')}</label>
+              <label className="text-xs text-gray-600">{t('editTags')}</label>
+              <input value={editTags} onChange={(e) => setEditTags(e.target.value)} className="w-full p-2 border rounded text-sm" placeholder={t('addTagsPlaceholder')} />
 
             {editPieces.length > 0 && (
               <div className="space-y-2">
@@ -78,32 +79,32 @@ const LearnSelectionItem: React.FC<Props> = ({ selection, expandedComments, onTo
                   <div key={idx} className="p-2 bg-gray-50 rounded">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs text-gray-600">Target language</label>
+                        <label className="text-xs text-gray-600">{t('targetLanguage')}</label>
                         <input value={p.target_language || ''} onChange={(e) => {
                           const next = [...editPieces]; next[idx] = { ...next[idx], target_language: e.target.value }; setEditPieces(next);
                         }} className="w-full p-1 border rounded text-sm" />
                       </div>
                       <div>
-                        <label className="text-xs text-gray-600">Part of speech</label>
+                        <label className="text-xs text-gray-600">{t('partOfSpeech')}</label>
                         <input value={p.part_of_speech || ''} onChange={(e) => {
                           const next = [...editPieces]; next[idx] = { ...next[idx], part_of_speech: e.target.value }; setEditPieces(next);
                         }} className="w-full p-1 border rounded text-sm" />
                       </div>
                     </div>
                     <div className="mt-2">
-                      <label className="text-xs text-gray-600">Definition</label>
+                      <label className="text-xs text-gray-600">{t('editDefinition')}</label>
                       <input value={p.definition || ''} onChange={(e) => {
                         const next = [...editPieces]; next[idx] = { ...next[idx], definition: e.target.value }; setEditPieces(next);
                       }} className="w-full p-1 border rounded text-sm" />
                     </div>
                     <div className="mt-2">
-                      <label className="text-xs text-gray-600">Translation</label>
+                      <label className="text-xs text-gray-600">{t('editTranslation')}</label>
                       <input value={p.translation || ''} onChange={(e) => {
                         const next = [...editPieces]; next[idx] = { ...next[idx], translation: e.target.value }; setEditPieces(next);
                       }} className="w-full p-1 border rounded text-sm" />
                     </div>
                     <div className="mt-2">
-                      <label className="text-xs text-gray-600">Example</label>
+                      <label className="text-xs text-gray-600">{t('editExample')}</label>
                       <input value={p.example || ''} onChange={(e) => {
                         const next = [...editPieces]; next[idx] = { ...next[idx], example: e.target.value }; setEditPieces(next);
                       }} className="w-full p-1 border rounded text-sm" />
@@ -126,9 +127,9 @@ const LearnSelectionItem: React.FC<Props> = ({ selection, expandedComments, onTo
                 }}
                 className="px-2 py-1 text-sm bg-green-100 text-green-800 rounded"
               >
-                Save
+                {t('save')}
               </button>
-              <button onClick={() => { setIsEditing(false); setEditText(selection.text || ''); setEditTags((selection.tags || []).filter((t: string) => !t.startsWith('fn_')).join(', ')); setEditPieces(Array.isArray(selection.pieces) ? selection.pieces.map((p: any) => ({ ...p })) : []); }} className="px-2 py-1 text-sm bg-gray-100 rounded">Cancel</button>
+              <button onClick={() => { setIsEditing(false); setEditText(selection.text || ''); setEditTags((selection.tags || []).filter((t: string) => !t.startsWith('fn_')).join(', ')); setEditPieces(Array.isArray(selection.pieces) ? selection.pieces.map((p: any) => ({ ...p })) : []); }} className="px-2 py-1 text-sm bg-gray-100 rounded">{t('cancel')}</button>
             </div>
           </div>
         ) : (
@@ -190,7 +191,7 @@ const LearnSelectionItem: React.FC<Props> = ({ selection, expandedComments, onTo
       {selection.comments && selection.comments.length > 0 && (
         <div className="mb-2">
           <button onClick={onToggleComments} className="text-xs text-blue-600 hover:text-blue-800 font-medium mb-1 cursor-pointer bg-transparent border-none p-0">
-            {expandedComments ? 'Hide Comments' : 'Show Comments'}
+            {expandedComments ? t('hideComments') : t('showComments')}
           </button>
           {expandedComments && (
             <div className="mt-1">

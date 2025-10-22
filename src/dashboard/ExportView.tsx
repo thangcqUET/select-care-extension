@@ -1,6 +1,7 @@
 import React from 'react';
 import { generators, defaultGenerator, exporterMeta } from './exporters';
 import { analytics, EventAction } from '../lib/analytics';
+import { t } from '../lib/i18n';
 
 type Props = {
   exportSelections: () => Promise<any[]>;
@@ -144,25 +145,25 @@ const ExportView: React.FC<Props> = ({ exportSelections, copyToClipboard }) => {
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-blue-100 shadow-sm">
       <div className="mb-3">
-        <h2 className="text-sm font-semibold text-blue-700">Export Selections</h2>
-        <div className="text-xs text-blue-500">Choose what to export and the target app — actions are shown below.</div>
+        <h2 className="text-sm font-semibold text-blue-700">{t('exportTitle')}</h2>
+        <div className="text-xs text-blue-500">{t('exportSubtitle')}</div>
       </div>
 
       <div className="space-y-3 mb-4">
         <div>
-          <label className="block text-xs text-gray-600 mb-1">Export</label>
+          <label className="block text-xs text-gray-600 mb-1">{t('exportWhat')}</label>
           <select
             value={exportWhat}
             onChange={(e) => setExportWhat(e.target.value as any)}
             className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="learning">Learning (flashcards)</option>
-            <option value="note">Note</option>
+            <option value="learning">{t('exportLearning')}</option>
+            <option value="note">{t('exportNote')}</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-xs text-gray-600 mb-1">Target app</label>
+          <label className="block text-xs text-gray-600 mb-1">{t('exportTargetApp')}</label>
           <select
             value={targetApp}
             onChange={(e) => setTargetApp(e.target.value)}
@@ -179,7 +180,7 @@ const ExportView: React.FC<Props> = ({ exportSelections, copyToClipboard }) => {
             if (!meta || !meta.formats) return null;
             return (
               <div className="mt-2">
-                <label className="block text-xs text-gray-600 mb-1">Format</label>
+                <label className="block text-xs text-gray-600 mb-1">{t('exportFormat')}</label>
                 <select
                   value={selectedFormat ?? meta.formats[0]}
                   onChange={(e) => setSelectedFormat(e.target.value)}
@@ -194,8 +195,8 @@ const ExportView: React.FC<Props> = ({ exportSelections, copyToClipboard }) => {
       </div>
 
       <div className="mb-4">
-        <label className="block text-xs text-gray-600 mb-1">Fields to include</label>
-  <div className="text-xs text-gray-500 mb-2">Drag to reorder fields</div>
+        <label className="block text-xs text-gray-600 mb-1">{t('exportFieldsToInclude')}</label>
+  <div className="text-xs text-gray-500 mb-2">{t('exportDragToReorder')}</div>
         {/* Render exporter-specific controls when metadata is available */}
         {(() => {
           const key = `${exportWhat}:${targetApp}`;
@@ -206,38 +207,38 @@ const ExportView: React.FC<Props> = ({ exportSelections, copyToClipboard }) => {
               <div className="flex flex-col gap-3">
                   <label className={`inline-flex items-center gap-3 px-3 py-1 rounded-full border shadow-sm text-sm cursor-pointer ${includeFields.front ? 'bg-blue-50 border-blue-200' : 'bg-white/80 border-gray-200'}`}>
                     <input className="w-4 h-4 text-blue-600" type="checkbox" checked={!!includeFields.front} onChange={(e) => setIncludeFields((prev: Record<string, any>) => ({ ...prev, front: e.target.checked }))} />
-                    <span className={`${includeFields.front ? 'text-blue-800' : 'text-gray-800'}`}>Front</span>
+                    <span className={`${includeFields.front ? 'text-blue-800' : 'text-gray-800'}`}>{t('exportFront')}</span>
                   </label>
                   <label className={`inline-flex items-center gap-3 px-3 py-1 rounded-full border shadow-sm text-sm cursor-pointer ${includeFields.back ? 'bg-blue-50 border-blue-200' : 'bg-white/80 border-gray-200'}`}>
                     <input className="w-4 h-4 text-blue-600" type="checkbox" checked={!!includeFields.back} onChange={(e) => setIncludeFields((prev: Record<string, any>) => ({ ...prev, back: e.target.checked }))} />
-                    <span className={`${includeFields.back ? 'text-blue-800' : 'text-gray-800'}`}>Back</span>
+                    <span className={`${includeFields.back ? 'text-blue-800' : 'text-gray-800'}`}>{t('exportBack')}</span>
                   </label>
                   <label className={`inline-flex items-center gap-3 px-3 py-1 rounded-full border shadow-sm text-sm cursor-pointer ${includeFields.tags ? 'bg-blue-50 border-blue-200' : 'bg-white/80 border-gray-200'}`}>
                     <input className="w-4 h-4 text-blue-600" type="checkbox" checked={!!includeFields.tags} onChange={(e) => setIncludeFields((prev: Record<string, any>) => ({ ...prev, tags: e.target.checked }))} />
-                    <span className={`${includeFields.tags ? 'text-blue-800' : 'text-gray-800'}`}>Tags</span>
+                    <span className={`${includeFields.tags ? 'text-blue-800' : 'text-gray-800'}`}>{t('exportTags')}</span>
                   </label>
                   <label className={`inline-flex items-center gap-3 px-3 py-1 rounded-full border shadow-sm text-sm cursor-pointer ${includeFields.source ? 'bg-blue-50 border-blue-200' : 'bg-white/80 border-gray-200'}`}>
                     <input className="w-4 h-4 text-blue-600" type="checkbox" checked={!!includeFields.source} onChange={(e) => setIncludeFields((prev: Record<string, any>) => ({ ...prev, source: e.target.checked }))} />
-                    <span className={`${includeFields.source ? 'text-blue-800' : 'text-gray-800'}`}>Source</span>
+                    <span className={`${includeFields.source ? 'text-blue-800' : 'text-gray-800'}`}>{t('exportSource')}</span>
                   </label>
                 </div>
             ) : (
               <div className="flex flex-col gap-3">
                 <label className="inline-flex items-center gap-3 px-3 py-1 rounded-full bg-white/80 border shadow-sm text-sm cursor-pointer">
                   <input className="w-4 h-4" type="checkbox" checked={!!includeFields.title} onChange={(e) => setIncludeFields((prev: Record<string, any>) => ({ ...prev, title: e.target.checked }))} />
-                  <span>Title</span>
+                  <span>{t('exportTitle_field')}</span>
                 </label>
                 <label className="inline-flex items-center gap-3 px-3 py-1 rounded-full bg-white/80 border shadow-sm text-sm cursor-pointer">
                   <input className="w-4 h-4" type="checkbox" checked={!!includeFields.body} onChange={(e) => setIncludeFields((prev: Record<string, any>) => ({ ...prev, body: e.target.checked }))} />
-                  <span>Body</span>
+                  <span>{t('exportBody')}</span>
                 </label>
                 <label className="inline-flex items-center gap-3 px-3 py-1 rounded-full bg-white/80 border shadow-sm text-sm cursor-pointer">
                   <input className="w-4 h-4" type="checkbox" checked={!!includeFields.tags} onChange={(e) => setIncludeFields((prev: Record<string, any>) => ({ ...prev, tags: e.target.checked }))} />
-                  <span>Tags</span>
+                  <span>{t('exportTags')}</span>
                 </label>
                 <label className="inline-flex items-center gap-3 px-3 py-1 rounded-full bg-white/80 border shadow-sm text-sm cursor-pointer">
                   <input className="w-4 h-4" type="checkbox" checked={!!includeFields.source} onChange={(e) => setIncludeFields((prev: Record<string, any>) => ({ ...prev, source: e.target.checked }))} />
-                  <span>Source</span>
+                  <span>{t('exportSource')}</span>
                 </label>
               </div>
             );
@@ -313,7 +314,7 @@ const ExportView: React.FC<Props> = ({ exportSelections, copyToClipboard }) => {
       </div>
 
       <div className="mb-4">
-        <label className="block text-xs text-gray-600 mb-1">Actions</label>
+        <label className="block text-xs text-gray-600 mb-1">{t('exportActions')}</label>
         <div className="flex gap-2 flex-wrap">
           {availableMethods.map(m => (
             <button
@@ -349,21 +350,21 @@ const ExportView: React.FC<Props> = ({ exportSelections, copyToClipboard }) => {
               className="px-3 py-1 text-sm rounded border transition-colors bg-white hover:bg-gray-50 cursor-pointer"
               disabled={sending}
             >
-              {m === 'file' ? `Download ${exportWhat}` : m === 'copy' ? 'Copy' : `Export to ${targetApp}`}
-              {m === 'copy' && copied ? <span className="ml-2 inline-block px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded">Copied</span> : null}
+              {m === 'file' ? `${t('exportDownload')} ${exportWhat}` : m === 'copy' ? t('exportCopy') : `${t('exportTo')} ${targetApp}`}
+              {m === 'copy' && copied ? <span className="ml-2 inline-block px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded">{t('exportCopied')}</span> : null}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="text-xs text-gray-600 mb-2">Preview</div>
+      <div className="text-xs text-gray-600 mb-2">{t('exportPreview')}</div>
       <div className="mb-3">
         <button
           onClick={() => void refreshPreview()}
           className="px-3 py-1 text-sm bg-gray-50 rounded border cursor-pointer"
           disabled={sending}
         >
-          Update preview
+          {t('exportUpdatePreview')}
         </button>
       </div>
       <ExportPreview text={previewText} />

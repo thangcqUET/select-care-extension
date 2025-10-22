@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { t } from '../lib/i18n';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -131,7 +132,7 @@ function App() {
               />
               <h1 className="text-xl font-bold text-gray-900">Select Care</h1>
             </div>
-            <p className="text-sm text-gray-600">Select your interest, shape your insight</p>
+            <p className="text-sm text-gray-600">{t('popupSubtitle')}</p>
           </div>
           <div>
             <button
@@ -139,7 +140,7 @@ function App() {
               onClick={handleGoToWebsite}
               className="cursor-pointer text-sm bg-white/80 hover:bg-white text-gray-800 px-3 py-1 rounded-full shadow-sm"
             >
-              Home
+              {t('btnHome')}
             </button>
           </div>
         </div>
@@ -150,7 +151,7 @@ function App() {
           className="cursor-pointer w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:shadow-lg text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 mb-3"
         >
           <span>📊</span>
-          <span>Open Sidebar</span>
+          <span>{t('openSidebar')}</span>
         </button>
 
         {/* Settings link */}
@@ -164,24 +165,19 @@ function App() {
 
         {/* Instructions */}
         <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 mb-4 border border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">How to use:</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">{t('howToUse')}</h2>
           <ol className="text-sm text-gray-700 space-y-1">
             <li className="flex items-start">
               <span className="font-medium text-blue-600 mr-2">1.</span>
-              Select any text on a webpage
+              {t('howToStep1')}
             </li>
             <li className="flex items-start">
               <span className="font-medium text-blue-600 mr-2">2.</span>
-              {/* TODO: Choose an action: Learn, Note, or Ask AI */}
-              Choose an action: Learn, Note
+              {t('howToStep2')}
             </li>
             <li className="flex items-start">
               <span className="font-medium text-blue-600 mr-2">3.</span>
-              Fill in details and save
-            </li>
-            <li className="flex items-start">
-              <span className="font-medium text-blue-600 mr-2">4.</span>
-              Open sidebar to manage your selections
+              {t('howToStep3')}
             </li>
           </ol>
         </div>
@@ -208,7 +204,7 @@ function App() {
             />
             <h1 className="text-xl font-bold text-gray-900">Select Care</h1>
           </div>
-          <p className="text-sm text-gray-600">Select your interest, shape your insight</p>
+          <p className="text-sm text-gray-600">{t('popupSubtitle')}</p>
           <p className="text-xs text-purple-600 font-medium">{userEmail}</p>
         </div>
         <div>
@@ -216,7 +212,7 @@ function App() {
             onClick={handleSignOut}
             className="cursor-pointer text-sm bg-white/80 hover:bg-white text-gray-800 px-3 py-1 rounded-full shadow-sm"
           >
-            Logout
+            {t('authLogout')}
           </button>
         </div>
       </div>
@@ -227,7 +223,7 @@ function App() {
         className="cursor-pointer w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:shadow-lg text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 mb-3"
       >
         <span>📊</span>
-        <span>Open Sidebar</span>
+        <span>{t('openSidebar')}</span>
       </button>
 
       {/* Settings link */}
@@ -241,24 +237,19 @@ function App() {
 
       {/* Instructions */}
       <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 mb-4 border border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">How to use:</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">{t('howToUse')}</h2>
         <ol className="text-sm text-gray-700 space-y-1">
           <li className="flex items-start">
             <span className="font-medium text-blue-600 mr-2">1.</span>
-            Select any text on a webpage
+            {t('howToStep1')}
           </li>
           <li className="flex items-start">
             <span className="font-medium text-blue-600 mr-2">2.</span>
-            {/* TODO: Choose an action: Learn, Note, or Ask AI */}
-            Choose an action: Learn, Note
+            {t('howToStep2')}
           </li>
           <li className="flex items-start">
             <span className="font-medium text-blue-600 mr-2">3.</span>
-            Fill in details and save
-          </li>
-          <li className="flex items-start">
-            <span className="font-medium text-blue-600 mr-2">4.</span>
-            Open sidebar to manage your selections
+            {t('howToStep3')}
           </li>
         </ol>
       </div>
@@ -269,7 +260,7 @@ function App() {
         onClick={handleSignOut}
         className="cursor-pointer w-full text-red-600 hover:text-red-700 font-medium py-2 px-4 transition-colors duration-200 text-sm"
       >
-        Sign Out
+        {t('authLogout')}
       </button>
 
       {/* Footer */}
