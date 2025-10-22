@@ -1,6 +1,7 @@
 /**
- * Google Tag Manager Analytics Service
+ * Google Analytics 4 (GA4) Service
  * Centralized tracking for user interactions across the extension
+ * Uses GA4 Measurement Protocol via service worker (Manifest V3 compliant)
  */
 
 // Event Categories
@@ -48,8 +49,8 @@ export enum EventAction {
   EXPORT_APP_SELECTED = 'export_app_selected',
 }
 
-// GTM Event interface
-export interface GTMEvent {
+// Analytics Event interface
+export interface AnalyticsEvent {
   event: string;
   eventCategory: EventCategory;
   eventAction: EventAction;
@@ -60,38 +61,19 @@ export interface GTMEvent {
   customData?: Record<string, any>;
 }
 
-// DataLayer type
-declare global {
-  interface Window {
-    dataLayer?: Array<any>;
-  }
-}
-
 /**
- * Analytics class for tracking events with Google Tag Manager
+ * Analytics class for tracking events with GA4
+ * All events are sent to the service worker which forwards them to GA4
  */
 class Analytics {
   private isEnabled: boolean = true;
   private debugMode: boolean = false;
-
-  constructor() {
-    this.initializeDataLayer();
-  }
   
   /**
    * Set debug mode (automatically enabled in development)
    */
   setDebugMode(enabled: boolean) {
     this.debugMode = enabled;
-  }
-
-  /**
-   * Initialize the dataLayer array if it doesn't exist
-   */
-  private initializeDataLayer() {
-    if (typeof window !== 'undefined' && !window.dataLayer) {
-      window.dataLayer = [];
-    }
   }
 
   /**
@@ -109,9 +91,9 @@ class Analytics {
   }
 
   /**
-   * Push event to GTM dataLayer
+   * Send tracking event to background script for GA4 processing
    */
-  private pushToDataLayer(data: any) {
+  private sendToBackground(data: any) {
     if (!this.isEnabled) {
       if (this.debugMode) {
         console.debug('[Analytics] Tracking disabled, skipping event:', data);
@@ -120,25 +102,6 @@ class Analytics {
     }
 
     try {
-      if (typeof window !== 'undefined' && window.dataLayer) {
-        window.dataLayer.push(data);
-        if (this.debugMode) {
-          console.log('[Analytics] ✅ Event tracked:', data);
-        }
-      } else {
-        // In service worker or content script context, send to background
-        this.sendToBackground(data);
-      }
-    } catch (error) {
-      console.error('[Analytics] ❌ Error pushing to dataLayer:', error);
-    }
-  }
-
-  /**
-   * Send tracking event to background script for processing
-   */
-  private sendToBackground(data: any) {
-    try {
       if (typeof chrome !== 'undefined' && chrome.runtime) {
         chrome.runtime.sendMessage({
           action: 'trackAnalytics',
@@ -146,9 +109,13 @@ class Analytics {
         }).catch(error => {
           console.debug('[Analytics] Failed to send to background:', error);
         });
+        
+        if (this.debugMode) {
+          console.log('[Analytics] ✅ Event sent to background:', data);
+        }
       }
     } catch (error) {
-      console.debug('[Analytics] Error sending to background:', error);
+      console.error('[Analytics] ❌ Error sending to background:', error);
     }
   }
 
@@ -162,7 +129,7 @@ class Analytics {
     value?: number,
     customData?: Record<string, any>
   ) {
-    const event: GTMEvent = {
+    const event: AnalyticsEvent = {
       event: 'custom_event',
       eventCategory: category,
       eventAction: action,
@@ -172,7 +139,7 @@ class Analytics {
       customData: customData,
     };
 
-    this.pushToDataLayer(event);
+    this.sendToBackground(event);
   }
 
   /**
@@ -272,10 +239,10 @@ class Analytics {
    * Track page view
    */
   trackPageView(pageName: string, pagePath?: string) {
-    this.pushToDataLayer({
+    this.sendToBackground({
       event: 'page_view',
       pageName,
-      pagePath: pagePath || window.location.pathname,
+      pagePath: pagePath || (typeof window !== 'undefined' ? window.location.pathname : '/'),
       timestamp: Date.now(),
     });
   }
@@ -289,7 +256,7 @@ class Analytics {
     time: number,
     label?: string
   ) {
-    this.pushToDataLayer({
+    this.sendToBackground({
       event: 'timing_complete',
       timingCategory: category,
       timingVariable: variable,
@@ -307,7 +274,7 @@ class Analytics {
     errorCategory?: string,
     fatal: boolean = false
   ) {
-    this.pushToDataLayer({
+    this.sendToBackground({
       event: 'error',
       errorDescription,
       errorCategory: errorCategory || 'general',
@@ -320,7 +287,7 @@ class Analytics {
    * Set user ID for tracking
    */
   setUserId(userId: string) {
-    this.pushToDataLayer({
+    this.sendToBackground({
       event: 'set_user_id',
       userId,
       timestamp: Date.now(),
@@ -331,7 +298,7 @@ class Analytics {
    * Clear user ID
    */
   clearUserId() {
-    this.pushToDataLayer({
+    this.sendToBackground({
       event: 'clear_user_id',
       userId: null,
       timestamp: Date.now(),
@@ -341,33 +308,5 @@ class Analytics {
 
 // Export singleton instance
 export const analytics = new Analytics();
-
-// Helper function to inject GTM script
-export function injectGTMScript(gtmId: string): void {
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    return;
-  }
-
-  // Initialize dataLayer
-  window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push({
-    'gtm.start': new Date().getTime(),
-    event: 'gtm.js'
-  });
-
-  // Inject GTM script
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtm.js?id=${gtmId}`;
-  
-  const firstScript = document.getElementsByTagName('script')[0];
-  if (firstScript && firstScript.parentNode) {
-    firstScript.parentNode.insertBefore(script, firstScript);
-  } else {
-    document.head.appendChild(script);
-  }
-
-  console.log('[Analytics] GTM script injected:', gtmId);
-}
 
 export default analytics;

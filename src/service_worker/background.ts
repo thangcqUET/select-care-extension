@@ -2,9 +2,23 @@ import { selectionDB } from "./database";
 import { detectLanguage } from './api/detectApi';
 import { translateDriver } from './api/translation';
 import { fetchDictionary as backgroundFetchDictionary } from './api/dictionary';
+import { initGA4, trackEvent, trackCustomEvent } from './ga4';
+import { isDebugMode, logEnvironmentInfo } from '../lib/environment';
 
 // Background service worker for Chrome extension
 console.log('Select Care Extension background script loaded');
+
+// Log environment information
+logEnvironmentInfo();
+
+// Initialize GA4 Analytics (using secure server-side proxy)
+// No API secrets in extension - they're kept safe on the server
+try {
+  initGA4(isDebugMode());
+  console.log('[GA4] Analytics initialized');
+} catch (error) {
+  console.error('[GA4] Failed to initialize analytics:', error);
+}
 
 // Function to broadcast data updates to all tabs/contexts
 function broadcastDataUpdate() {
@@ -104,12 +118,35 @@ selectionDB.init().catch(error => {
 });
 
 // Handle extension installation
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('Select Care Extension installed');
+  
   // Initialize database on installation
   selectionDB.init().catch(error => {
     console.error('Failed to initialize IndexedDB on install:', error);
   });
+
+  // Track installation or update with GA4
+  try {
+    const manifest = chrome.runtime.getManifest();
+    
+    if (details.reason === 'install') {
+      await trackEvent('extension_installed', {
+        version: manifest.version,
+        manifest_version: manifest.manifest_version,
+      });
+      console.log('[GA4] Tracked extension installation');
+    } else if (details.reason === 'update') {
+      await trackEvent('extension_updated', {
+        version: manifest.version,
+        previous_version: details.previousVersion,
+        manifest_version: manifest.manifest_version,
+      });
+      console.log('[GA4] Tracked extension update');
+    }
+  } catch (error) {
+    console.error('[GA4] Failed to track installation event:', error);
+  }
 });
 
 // Handle sidebar panel availability
@@ -120,81 +157,43 @@ chrome.runtime.onStartup.addListener(() => {
 // Handle messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Handle analytics tracking from content scripts
-    if (message.action === 'trackAnalytics') {
-      console.log('[Analytics] Received tracking event:', message.data);
-      // Forward to configured API endpoint (Measurement Protocol or proxy)
-      // We try to post to `${apiEndpoint}/collect` with a small retry queue.
-      (async () => {
-        let responded = false;
-        try {
-          // Try to get apiEndpoint from environment module, but guard against modules that touch `window`.
-          let apiEndpoint: string | undefined;
-          try {
-            const envModule = await import('../lib/environment');
-            if (envModule && typeof envModule.getConfig === 'function') {
-              const cfg = envModule.getConfig();
-              apiEndpoint = cfg?.apiEndpoint;
-            }
-          } catch (e) {
-            // Import may fail in service worker if module expects window; ignore and fallback
-            console.warn('[Analytics] Failed to import environment module (expected in SW):', e);
-          }
-
-          // Fallback: try chrome.storage.local for a configured endpoint
-          if (!apiEndpoint) {
-            try {
-              const stored = await chrome.storage.local.get(['selectcare_api_endpoint']);
-              apiEndpoint = stored?.selectcare_api_endpoint;
-            } catch (e) {
-              console.warn('[Analytics] Failed to read apiEndpoint from storage:', e);
-            }
-          }
-
-          if (!apiEndpoint) {
-            console.warn('[Analytics] No apiEndpoint configured, dropping event');
-            sendResponse({ success: false, error: 'No apiEndpoint' });
-            responded = true;
-            return;
-          }
-
-          // Respect disable flag in storage
-          try {
-            const storedFlag = await chrome.storage.local.get(['analytics_disabled']);
-            if (storedFlag && storedFlag.analytics_disabled) {
-              console.log('[Analytics] Analytics forwarding disabled via storage flag');
-              sendResponse({ success: false, error: 'analytics_disabled' });
-              responded = true;
-              return;
-            }
-          } catch (e) {
-            // ignore storage errors
-          }
-
-          const url = apiEndpoint.replace(/\/$/, '') + '/collect';
-          const body = JSON.stringify({ event: message.data, timestamp: Date.now() });
-
-          // Try sending once; background service worker lifecycle is limited so keep it simple
-          const resp = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body
-          });
-
-          if (!resp.ok) {
-            console.warn('[Analytics] Server responded with non-OK status', resp.status);
-            sendResponse({ success: false, status: resp.status });
-          } else {
-            sendResponse({ success: true });
-          }
-          responded = true;
-        } catch (err) {
-          console.error('[Analytics] Failed to forward event:', err);
-          if (!responded) {
-            try { sendResponse({ success: false, error: String(err) }); } catch (e) {}
-          }
+  if (message.action === 'trackAnalytics') {
+    console.log('[Analytics] Received tracking event:', message.data);
+    
+    // Handle analytics using GA4 Measurement Protocol (Manifest V3 compliant)
+    (async () => {
+      try {
+        // Check if analytics is disabled
+        const storedFlag = await chrome.storage.local.get(['analytics_disabled']);
+        if (storedFlag && storedFlag.analytics_disabled) {
+          console.log('[Analytics] Analytics disabled via storage flag');
+          sendResponse({ success: false, error: 'analytics_disabled' });
+          return;
         }
-      })();
-      return true; // Indicate async response
+
+        // Extract event data
+        const { eventCategory, eventAction, eventLabel, eventValue, customData } = message.data;
+        
+        // Track event with GA4
+        const success = await trackCustomEvent(
+          eventCategory || 'general',
+          eventAction || 'custom_event',
+          eventLabel,
+          eventValue,
+          {
+            ...customData,
+            timestamp: Date.now(),
+          }
+        );
+
+        sendResponse({ success });
+      } catch (err) {
+        console.error('[Analytics] Failed to track event:', err);
+        sendResponse({ success: false, error: String(err) });
+      }
+    })();
+    
+    return true; // Indicate async response
   }
 
   // Handle authentication messages from content scripts

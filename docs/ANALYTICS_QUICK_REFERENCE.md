@@ -31,7 +31,7 @@ Replace `GTM-XXXXXXX` with your actual GTM Container ID in:
 ### Popup Events
 | Action | Location | When Triggered |
 |--------|----------|----------------|
-| `save_to_learn_clicked` | SelectPopup.ts | User clicks 🧠 button |
+| `save_to_learn_clicked` | SelectPopup.ts | User clicks 🔡 button |
 | `save_note_clicked` | SelectPopup.ts | User clicks 📝 button |
 
 ### Form Events

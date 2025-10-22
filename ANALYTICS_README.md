@@ -9,7 +9,7 @@ Comprehensive Google Tag Manager (GTM) analytics tracking has been implemented a
 ### User Interactions Tracked (18 Events)
 
 1. **Text Selection** - When users select text on webpages
-2. **Save to Learn Click** - When users click the 🧠 button
+2. **Save to Learn Click** - When users click the 🔡 button
 3. **Save Note Click** - When users click the 📝 button
 4. **Translation Request** - When translation API is called
 5. **Definition Request** - When dictionary lookup is performed

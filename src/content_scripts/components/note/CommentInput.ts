@@ -9,7 +9,7 @@ export interface CommentInputOptions {
   minHeight?: string;
   onCommentChange?: (value: string) => void;
   onCommentFocus?: () => void;
-  onCommentBlur?: () => void;
+  onCommentBlur?: (value: string) => void;
   onSave?: () => void; // Called when Ctrl+Enter is pressed
   showButton?: boolean; // Whether to show "Add Comment" button initially
   buttonText?: string;
@@ -241,7 +241,7 @@ export class CommentInput {
   
   private handleBlur() {
     console.log('CommentInput blurred');
-    this.options.onCommentBlur?.();
+    this.options.onCommentBlur?.(this.commentTextarea.value);
     
     // Auto-collapse if empty and button was originally shown
     if (this.options.showButton && !this.commentTextarea.value.trim()) {

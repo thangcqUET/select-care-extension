@@ -120,16 +120,16 @@ export class NoteInput {
       placeholder: 'Add your notes or comments here...',
       showButton: true,
       buttonText: '+ Add Comment',
-      onCommentChange: (value: string) => {
-        // Track add comment event when comment has content
+      onCommentChange: () => {},
+      onCommentFocus: () => {},
+      onCommentBlur: (value: string) => {
+        // Track add comment event when user unfocuses and comment has content
         if (value && value.trim().length > 0) {
           analytics.trackNoteAction(EventAction.ADD_COMMENT, {
             commentLength: value.trim().length
           });
         }
       },
-      onCommentFocus: () => {},
-      onCommentBlur: () => {},
       onSave: () => { this.handleSave(); }
     });
 

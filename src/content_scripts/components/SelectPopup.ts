@@ -1,6 +1,7 @@
 import { SelectionState } from "../SelectionState";
 import { FormPopup } from "./FormPopup";
 import { analytics } from "../../lib/analytics";
+import { t } from "../../lib/i18n";
 
 // Virtual DOM component for the popup
 export class SelectPopup {
@@ -155,9 +156,9 @@ export class SelectPopup {
     });
 
     const icons = [
-      { emoji: '🧠', action: 'learn', title: 'Save to Learn' },
-      { emoji: '📝', action: 'note', title: 'Save as Note' },
-      // { emoji: '🤖', action: 'chat', title: 'Ask AI' } //TODO
+      { emoji: '🔡', action: 'learn', title: t('btnLearn') },
+      { emoji: '📝', action: 'note', title: t('btnNote') },
+      // { emoji: '🤖', action: 'chat', title: t('btnChat') } //TODO
     ];
 
     icons.forEach(icon => {

@@ -1,9 +1,7 @@
 /**
  * Environment Configuration
  * 
- * This file manages environment-specific settings including GTM container IDs.
- * Different GTM containers allow you to test analytics in development without
- * affecting production data.
+ * This file manages environment-specific settings for the extension.
  */
 
 export type Environment = 'development' | 'production';
@@ -46,20 +44,17 @@ export function getEnvironment(): Environment {
  * Environment-specific configuration
  */
 interface EnvironmentConfig {
-  gtmId: string;
   debug: boolean;
-  apiEndpoint?: string;
+  apiEndpoint: string;
 }
 
 const configs: Record<Environment, EnvironmentConfig> = {
   development: {
-    gtmId: 'GTM-5F44MV82', // Replace with your DEV GTM container ID
     debug: true,
     apiEndpoint: 'http://localhost:3001',
   },
   production: {
-    gtmId: 'GTM-5F44MV82', // Replace with your PROD GTM container ID
-    debug: false,
+    debug: true,
     apiEndpoint: 'https://main.djfc0uq2bj5xw.amplifyapp.com',
   },
 };
@@ -70,13 +65,6 @@ const configs: Record<Environment, EnvironmentConfig> = {
 export function getConfig(): EnvironmentConfig {
   const env = getEnvironment();
   return configs[env];
-}
-
-/**
- * Get GTM Container ID for current environment
- */
-export function getGTMId(): string {
-  return getConfig().gtmId;
 }
 
 /**
@@ -94,8 +82,8 @@ export function logEnvironmentInfo(): void {
   const config = getConfig();
   
   console.log(`[Environment] Running in ${env} mode`);
-  console.log(`[Environment] GTM ID: ${config.gtmId}`);
   console.log(`[Environment] Debug: ${config.debug}`);
+  console.log(`[Environment] API Endpoint: ${config.apiEndpoint}`);
   
   if (typeof chrome !== 'undefined' && chrome.runtime) {
     console.log(`[Environment] Extension ID: ${chrome.runtime.id}`);

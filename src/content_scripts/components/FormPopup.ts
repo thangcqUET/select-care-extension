@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import LearnInput from './learn/LearnInput';
 import { NoteInput } from './note/NoteInput';
 import { analytics, EventAction } from '../../lib/analytics';
+import { t } from '../../lib/i18n';
 
 export class FormPopup {
   private container: HTMLDivElement;
@@ -306,16 +307,16 @@ export class FormPopup {
 
     switch (this.actionType) {
       case 'learn':
-        icon.textContent = '🧠';
-        title.textContent = 'Save to Learn';
+        icon.textContent = '🔡';
+        title.textContent = t('btnLearn');
         break;
       case 'note':
         icon.textContent = '📌';
-        title.textContent = 'Save Note';
+        title.textContent = t('btnNote');
         break;
       case 'chat':
         icon.textContent = '🤖';
-        title.textContent = 'Ask AI';
+        title.textContent = t('btnChat');
         break;
     }
 
@@ -338,7 +339,7 @@ export class FormPopup {
 
     const cancelBtn = document.createElement('button');
     cancelBtn.className = 'form-button cancel';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = t('btnCancel');
     cancelBtn.addEventListener('click', () => this.hide());
 
     const saveBtn = document.createElement('button');
@@ -504,13 +505,13 @@ export class FormPopup {
   private getSaveButtonText(): string {
     switch (this.actionType) {
       case 'learn':
-        return 'Save to Learn';
+        return t('btnLearn');
       case 'note':
-        return 'Save Note';
+        return t('btnNote');
       case 'chat':
-        return 'Ask AI';
+        return t('btnChat');
       default:
-        return 'Save';
+        return t('btnSave');
     }
   }
 

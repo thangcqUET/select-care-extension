@@ -5,6 +5,8 @@ import ExportView from './ExportView';
 import LearnView from './LearnView';
 import StatsView from './StatsView';
 import { analytics, EventAction } from '../lib/analytics';
+import { t, getCurrentLocale } from '../lib/i18n';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 type View = 'manage' | 'export' | 'learn' | 'stats';
 
@@ -17,6 +19,18 @@ const Dashboard: React.FC = () => {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [view, setView] = useState<View>('manage');
+  const [, forceUpdate] = useState({});
+
+  // Initialize locale
+  useEffect(() => {
+    getCurrentLocale();
+  }, []);
+
+  // Handle locale change from LanguageSwitcher
+  const handleLocaleChange = () => {
+    // Force component re-render to update all t() calls
+    forceUpdate({});
+  };
 
   // Track sidebar opened on mount
   useEffect(() => {
@@ -253,35 +267,36 @@ const Dashboard: React.FC = () => {
               />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Select Care</h1>
-                <p className="text-xs text-gray-600">Manage your selections</p>
+                <p className="text-xs text-gray-600">{t('dashboardMySelections')}</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <LanguageSwitcher className="mr-2" showLabel={false} onLocaleChange={handleLocaleChange} />
               {/* Desktop / wide: inline tabs with horizontal scroll to avoid wrapping */}
               <div className="hidden sm:flex items-center space-x-1 bg-white/0 rounded overflow-x-auto">
                 <button
                   onClick={() => setView('manage')}
                   className={`whitespace-nowrap flex-shrink-0 px-3 py-1 text-sm rounded ${view === 'manage' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
-                  Manage
+                  {t('btnManage')}
                 </button>
                 <button
                   onClick={() => setView('export')}
                   className={`whitespace-nowrap flex-shrink-0 px-3 py-1 text-sm rounded ${view === 'export' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
-                  Export
+                  {t('btnExport')}
                 </button>
                 <button
                   onClick={() => setView('learn')}
                   className={`whitespace-nowrap flex-shrink-0 px-3 py-1 text-sm rounded ${view === 'learn' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
-                  Learn
+                  {t('btnLearn')}
                 </button>
                 <button
                   onClick={() => setView('stats')}
                   className={`whitespace-nowrap flex-shrink-0 px-3 py-1 text-sm rounded ${view === 'stats' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
-                  Stats
+                  {t('btnStats')}
                 </button>
               </div>
 
@@ -293,10 +308,10 @@ const Dashboard: React.FC = () => {
                   className="px-2 py-1 text-sm border border-gray-200 rounded bg-white"
                   aria-label="Select view"
                 >
-                  <option value="manage">Manage</option>
-                  <option value="export">Export</option>
-                  {/* <option value="learn">Learn</option>
-                  <option value="stats">Stats</option> */}
+                  <option value="manage">{t('btnManage')}</option>
+                  <option value="export">{t('btnExport')}</option>
+                  {/* <option value="learn">{t('btnLearn')}</option>
+                  <option value="stats">{t('btnStats')}</option> */}
                   {/* TODO: Learn, Stats */}
                 </select>
               </div>
