@@ -18,7 +18,7 @@
   },
   "action": {
     "default_popup": "src/extension_popup/popup.html",
-    "default_title": "__MSG_actionTitle__",
+    "default_title": "Select Care",
     "default_icon": "icon16.png"
   },
   "permissions": [
