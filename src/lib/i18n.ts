@@ -84,7 +84,7 @@ const translations = {
     markToSave: 'Đánh dấu để lưu',
     marked: 'Đã đánh dấu',
     markMeaningsToSave: 'Đánh dấu nghĩa nào bạn muốn lưu nhé!',
-    definitionsAvailable: 'định nghĩa có sẵn, chọn ít nhất 1 định nghĩa để lưu và học nha!',
+    definitionsAvailable: 'định nghĩa có sẵn, đánh dấu ít nhất 1 định nghĩa để lưu và học nha!',
     addComments: 'Ghi chú thêm',
     addCommentsPlaceholder: 'Thêm comment gì đó nè... (vd: "ui hay quá", "ý nghĩa ghê huhu", vv)',
     addCommentButton: '+ Thêm Comment',
